@@ -3,7 +3,7 @@
 This folder contains code for data preparation for all the models. The seq2seq format is different than the BIO tags. Moreover,
 the script `gather_corpus_stats.py`, creates the statistics table from the paper and gathers the tag information from the different data sources.
 
-###Heideltime
+### Heideltime
 The subfolder `heideltime` contains the code related to the HeidelTime package. To run the codes you need the [heideltime python] (https://github.com/PhilipEHausner/python_heideltime/tree/master/python_heideltime)
 installed. `heideltime_generate_tempeval_data.py` tags the text from the benchmark data using the heideltime python package.
 We add the timeml tags to the beginning and end of the documents and try to match the formatting of the sources.
@@ -17,7 +17,7 @@ The `tweets` tag should be set if the input data is the tweets dataset since it 
 `subset_heideltime_data.py` subsets the full weakly labeled heideltime data, to keep only 1 million instances, from which
 20 percent are negative examples and contain no annotation.
 
-###Seq2seq data
+### Seq2seq data
 To generate examples for seq2seq models use `seq2seq_data_generator.py` as follows:
 
 ``` python
