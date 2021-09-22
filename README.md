@@ -36,8 +36,8 @@ We train and evaluate two types of setups for joint temporal tagging and classif
 To train the seq2seq models, use `run_seq2seq_bert_roberta.py`. Example usage is as follows:
 ```python
 python3 run_seq2seq_bert_roberta.py --model_name roberta-base --pre_train True \
---model_dir ./test --train_data /export/data/salmasia/numbert/data/temporal/tempeval_seq2seq/train/tempeval_train.json \ 
---eval_data /export/data/salmasia/numbert/data/temporal/tempeval_seq2seq/test/tempeval_test.json --num_gpu 2 --num_train_epochs 1 \
+--model_dir ./test --train_data ./data/seq2seq/train/tempeval_train.json \ 
+--eval_data ./data/seq2seq/test/tempeval_test.json --num_gpu 2 --num_train_epochs 1 \
 warmup_steps 100 --seed 0 --eval_steps 200
 ```
 Which trains a roberta2roberta model defined by `model_name` for `num_train_epochs` epochs on the gpu with ID `num_gpu`.
