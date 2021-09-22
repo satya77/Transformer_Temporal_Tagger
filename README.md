@@ -9,7 +9,7 @@ This repository describes two different types of transformer-based temporal tagg
 We follow the TIMEX3 schema definitions in their styling and expression classes (notably, the latter are one of `TIME, DATE, SET, DURATION`). The available data sources for temporal tagging are in the TimeML format, which is essentially a form of XML with tags encapsulating temporal expressions.  
 An example can be seen below:
 ```
-The season started about a month earlier than usual, sparking concerns it might turn into the worst in <TIMEX3 tid="t2" type="DURATION" value="P1DE">a decade</TIMEX3>.
+Due to lockdown restrictions, 2020 might go down as the worst economic year in over <TIMEX3 tid="t2" type="DURATION" value="P1DE">a decade</TIMEX3>.
 ```
 For more data instances, look at the content of `data.zip`. Refer to the README file in the respective unzipped folder for more information.  
 This repository contains code for data preparation and training of a seq2seq model (encoder-decoder architectured initialized from encoder-only architectures, specifically BERT or RoBERTa), as well as three token classification encoders (BERT-based).  
@@ -34,7 +34,7 @@ We train and evaluate two types of setups for joint temporal tagging and classif
 ### Seq2seq
 
 To train the seq2seq models, use `run_seq2seq_bert_roberta.py`. Example usage is as follows:
-```python
+```bash
 python3 run_seq2seq_bert_roberta.py --model_name roberta-base --pre_train True \
 --model_dir ./test --train_data ./data/seq2seq/train/tempeval_train.json \ 
 --eval_data ./data/seq2seq/test/tempeval_test.json --num_gpu 2 --num_train_epochs 1 \
@@ -54,28 +54,31 @@ For additional arguments such as length penalty, the number of beams, early stop
 ### Token Classifiers
 As mentioned above all token classifiers are trained using an adaptation of the NER script from hugginface. To train these models use \
 `run_token_classifier.py` like the following example:
-```
-python run_token_classifier.py --data_dir /data/temporal/BIO/wikiwars \ 
+```bash
+python3 run_token_classifier.py --data_dir /data/temporal/BIO/wikiwars \ 
 --labels ./data/temporal/BIO/train_staging/labels.txt \ 
 --model_name_or_path bert-base-uncased \ 
 --output_dir ./fine_tune_wikiwars/bert_tagging_with_date_no_pretrain_8epochs/bert_tagging_with_date_layer_seed_19 --max_seq_length  512  \
 --num_train_epochs 8 --per_device_train_batch_size 34 --save_steps 3000 --logging_steps 300 --eval_steps 3000 \ 
 --do_train --do_eval --overwrite_output_dir --seed 19 --model_date_extra_layer    
 ```
-we used `bert-base-uncased ` as the base of all our models for pre-training as defined by `model_name_or_path`.
+We used `bert-base-uncased ` as the base of all our token classification models for pre-training as defined by `model_name_or_path`.
 For fine-tuning on the datasets `model_name_or_path` should point to the path of the pre-trained model. `labels` file is created during data preparation for more information refer to the [subfolder](./data_preparation/README.md).
-`data_dir` points to a folder that contains train.txt,test.txt and dev.txt and `output_dir` points to the saving location.
-you can define the number of epochs by `num_train_epochs`, set the seed with `seed` and batch size on each GPU with `per_device_train_batch_size`. For more information on the parameters refer to [hugginface script](https://github.com/huggingface/transformers/tree/master/examples/pytorch/token-classification).
+`data_dir` points to a folder that contains `train.txt`, `test.txt` and `dev.txt` and `output_dir` points to the saving location.
+You can define the number of epochs by `num_train_epochs`, set the seed with `seed` and batch size on each GPU with `per_device_train_batch_size`.
+For more information on the parameters refer to the [Hugginface script](https://github.com/huggingface/transformers/tree/master/examples/pytorch/token-classification).
 In our paper, we introduce 3 variants of token classification, which are defined by flags in the script.
-If no flag is set the model trains the vanilla bert for token classification.
+If no flag is set the model trains the vanilla BERT for token classification.
 The flag `model_date_extra_layer` trains the model with an extra date layer and `model_crf` adds the extra crf layer.
 To train the extra date embedding you need to download the vocabulary file and specify its path in `date_vocab` argument.
-The description and model definition of the BERT variants are in folder [temporal_models](./temporal_models/README.md).
-Please refer to its readme file for more information. For training different model types on the same data, make sure to remove
+The description and model definition of the BERT variants are in folder [temporal_models](./temporal_models/).
+Please refer to the README file for further information. For training different model types on the same data, make sure to remove
 the cached dataset, since the feature generation is different for each model type. 
 
-## Load directly from the Huggingface Model Hub 
-We uploaded our best-performing version of each architecture to the Huggingface Model Hub. The weights for the other four seeding runs are available upon request. We upload the variants that were fine-tuned on the concatenation of *all three* evaluation sets for better generalization to various domains.
+## Load directly from the Huggingface Model Hub
+We uploaded our best-performing version of each architecture to the Huggingface Model Hub.
+The weights for the other four seeding runs are available upon request.
+We upload the variants that were fine-tuned on the concatenation of *all three* evaluation sets for better generalization to various domains.
 Token classification models are variants without pre-training.
 Both seq2seq models are pretrained on the weakly labled corpus and fine-tuned on the mixed data. 
 
@@ -100,17 +103,17 @@ seq2seq and token classification examples using the hugginface model hub. The ex
 for tagging. The seq2seq example uses the pre-defined post-processing from the tempeval evaluation and contains rules for the cases we came across in the benchmark dataset. 
 If you plan to use these models on new data, it is best to observe the raw output of the first few samples to detect possible format problems that are easily fixable.
 Further fine-tuning of the models is also possible.
-For seq2seq models you can simply load the models as follows:
+For seq2seq models you can simply load the models with
 ```python
-    tokenizer = AutoTokenizer.from_pretrained("satyaalmasian/temporal_tagger_roberta2roberta")
-    model = EncoderDecoderModel.from_pretrained("satyaalmasian/temporal_tagger_roberta2roberta")
+tokenizer = AutoTokenizer.from_pretrained("satyaalmasian/temporal_tagger_roberta2roberta")
+model = EncoderDecoderModel.from_pretrained("satyaalmasian/temporal_tagger_roberta2roberta")
 ```
 and use the `DataProcessor` from `temporal_models.seq2seq_utils` to preprocess the `json` dataset. The model
-can be fine-tuned using `Seq2SeqTrainer` (same as `run_seq2seq_bert_roberta.py`).
+can be fine-tuned using `Seq2SeqTrainer` (same as in `run_seq2seq_bert_roberta.py`).
 For token classifiers the model and the tokenizers are loaded as follows:
 ``` python
-    tokenizer = AutoTokenizer.from_pretrained("satyaalmasian/temporal_tagger_BERT_tokenclassifier", use_fast=False)
-    model = BertForTokenClassification.from_pretrained("satyaalmasian/temporal_tagger_BERT_tokenclassifier")
+tokenizer = AutoTokenizer.from_pretrained("satyaalmasian/temporal_tagger_BERT_tokenclassifier", use_fast=False)
+model = BertForTokenClassification.from_pretrained("satyaalmasian/temporal_tagger_BERT_tokenclassifier")
 ```
 Classifiers need a BIO-tagged file that can be loaded using `TokenClassificationDataset` and fine-tuned with the hugginface `Trainer`.
 For more information on the usage of these models refer to their model hub page. 
@@ -119,5 +122,10 @@ For more information on the usage of these models refer to their model hub page.
 ## Citation
 If you use our models in your work, we would appreciate attribution with the following citation:
 ```
-
+@article{almasian2021bert,
+  title={{BERT got a Date: Introducing Transformers to Temporal Tagging}},
+  author={Almasian, Satya and Aumiller, Dennis and Gertz, Michael},
+  journal={arXiv},
+  year={2021}
+}
 ```

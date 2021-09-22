@@ -2,6 +2,7 @@ import numpy as np
 from bs4 import BeautifulSoup
 import re
 
+
 class metrics:
     def __init__(self, tokenizer):
         self.tokenizer = tokenizer
@@ -66,8 +67,10 @@ class metrics:
                         for i in range(len(timex_labels)):
                             for j in range(i, len(timex_preds)):
                                 flag = False
-                                cleand_text = timex_preds[j].text.replace("<", "").replace(">", "").replace("\"", "").strip()
-                                if len (cleand_text.split(" "))>1 and  cleand_text.split(" ")[0]==cleand_text.split(" ")[1]:
+                                cleand_text = timex_preds[j].text.replace("<", "").replace(">", "").replace("\"",
+                                                                                                            "").strip()
+                                if len(cleand_text.split(" ")) > 1 and cleand_text.split(" ")[0] == \
+                                        cleand_text.split(" ")[1]:
                                     cleand_text = ' '.join(cleand_text.split(" ")[1:])
 
                                 if cleand_text == timex_labels[i].text.strip():
@@ -84,7 +87,8 @@ class metrics:
                                 if "value" in timex_preds[j].attrs:
                                     # retrieved
                                     date_retrieved = date_retrieved + 1
-                                    if (timex_preds[j].attrs["value"].strip() == timex_labels[i].attrs["value"].strip()):
+                                    if (timex_preds[j].attrs["value"].strip() == timex_labels[i].attrs[
+                                        "value"].strip()):
                                         date_tp = date_tp + 1  # retrieved docs intersection with relevant docs
 
                                 if "type" in timex_preds[j].attrs:
@@ -95,7 +99,8 @@ class metrics:
                                     both_retrieved = both_retrieved + 1
                                     if timex_preds[j].attrs["value"].strip() == timex_labels[i].attrs[
                                         "value"].strip() and \
-                                            timex_labels[i].attrs["type"].strip() == timex_preds[j].attrs["type"].strip():
+                                            timex_labels[i].attrs["type"].strip() == timex_preds[j].attrs[
+                                        "type"].strip():
                                         both_tp = both_tp + 1
                                 if flag:
                                     break
@@ -123,42 +128,28 @@ class metrics:
         result["both_accuracy"] = (both_tp / float(total_timex)) if total_timex != 0 else 0
         result["exact_accuracy"] = (exact_match_tp / float(total_timex)) if total_timex != 0 else 0
         result["partial_accuracy"] = (partical_match_tp / float(total_timex)) if total_timex != 0 else 0
-        result["exact_precision"] = (exact_match_tp / float(exact_match_tp + exact_match_fp)) if (
-                                                                                                             exact_match_tp + exact_match_fp) != 0 else 0
-        result["partial_precision"] = (partical_match_tp / float(partical_match_tp + partical_match_fp)) if (
-                                                                                                                        partical_match_tp + partical_match_fp) != 0 else 0
+        result["exact_precision"] = (exact_match_tp / float(exact_match_tp + exact_match_fp)) if (exact_match_tp + exact_match_fp) != 0 else 0
+        result["partial_precision"] = (partical_match_tp / float(partical_match_tp + partical_match_fp)) if (partical_match_tp + partical_match_fp) != 0 else 0
         result["date_precision"] = (date_tp / float(date_retrieved)) if (date_retrieved) != 0 else 0
         result["type_precision"] = (type_tp / float(type_retrieved)) if (type_retrieved) != 0 else 0
         result["both_precision"] = (both_tp / float(both_retrieved)) if (both_retrieved) != 0 else 0
-        result["exact_recall"] = (exact_match_tp / float(exact_match_tp + exact_match_fn)) if (
-                                                                                                          exact_match_tp + exact_match_fn) != 0 else 0
-        result["partial_recall"] = (partical_match_tp / float(partical_match_tp + partical_match_fn)) if (
-                                                                                                                     partical_match_tp + partical_match_fn) != 0 else 0
+        result["exact_recall"] = (exact_match_tp / float(exact_match_tp + exact_match_fn)) if (exact_match_tp + exact_match_fn) != 0 else 0
+        result["partial_recall"] = (partical_match_tp / float(partical_match_tp + partical_match_fn)) if (partical_match_tp + partical_match_fn) != 0 else 0
         result["date_recall"] = (date_tp / float(total_timex)) if total_timex != 0 else 0
         result["type_recall"] = (type_tp / float(total_timex)) if total_timex != 0 else 0
         result["both_recall"] = (both_tp / float(total_timex)) if total_timex != 0 else 0
-        result["exact_f1"] = ((2 * (result["exact_precision"] * result["exact_recall"])) / float(
-            result["exact_precision"] + result["exact_recall"])) if (result["exact_precision"] + result[
-            "exact_recall"]) != 0 else 0
-        result["partial_f1"] = ((2 * (result["partial_precision"] * result["partial_recall"])) / float(
-            result["partial_precision"] + result["partial_recall"])) if (result["partial_precision"] + result[
-            "partial_recall"]) != 0 else 0
-        result["date_f1"] = ((2 * (result["date_precision"] * result["date_recall"])) / float(
-            result["date_precision"] + result["date_recall"])) if (result["date_precision"] + result[
-            "date_recall"]) != 0 else 0
-        result["type_f1"] = ((2 * (result["type_precision"] * result["type_recall"])) / float(
-            result["type_precision"] + result["type_recall"])) if (result["type_precision"] + result[
-            "type_recall"]) != 0 else 0
-        result["both_f1"] = ((2 * (result["both_precision"] * result["both_recall"])) / float(
-            result["both_precision"] + result["both_recall"])) if (result["both_precision"] + result[
-            "both_recall"]) != 0 else 0
+        result["exact_f1"] = ((2 * (result["exact_precision"] * result["exact_recall"])) / float(result["exact_precision"] + result["exact_recall"])) if (result["exact_precision"] + result["exact_recall"]) != 0 else 0
+        result["partial_f1"] = ((2 * (result["partial_precision"] * result["partial_recall"])) / float(result["partial_precision"] + result["partial_recall"])) if (result["partial_precision"] + result["partial_recall"]) != 0 else 0
+        result["date_f1"] = ((2 * (result["date_precision"] * result["date_recall"])) / float(result["date_precision"] + result["date_recall"])) if (result["date_precision"] + result["date_recall"]) != 0 else 0
+        result["type_f1"] = ((2 * (result["type_precision"] * result["type_recall"])) / float(result["type_precision"] + result["type_recall"])) if (result["type_precision"] + result["type_recall"]) != 0 else 0
+        result["both_f1"] = ((2 * (result["both_precision"] * result["both_recall"])) / float(result["both_precision"] + result["both_recall"])) if (result["both_precision"] + result["both_recall"]) != 0 else 0
 
         return result
 
-   
 
 class DataProcessor:
-    def __init__(self, tokenizer, text_column, target_column, prefix, max_source_length, max_target_length, padding,date_column=None):
+    def __init__(self, tokenizer, text_column, target_column, prefix, max_source_length, max_target_length, padding,
+                 date_column=None):
         self.tokenizer = tokenizer
         self.text_column = text_column
         self.target_column = target_column
@@ -167,8 +158,6 @@ class DataProcessor:
         self.max_target_length = max_target_length
         self.padding = padding
         self.date_column = date_column
-
-
 
     def process_data_to_model_inputs_encoder_decoder(self, batch):
         # tokenize the inputs and labels
@@ -187,5 +176,3 @@ class DataProcessor:
                            batch["labels"]]
 
         return batch
-
-

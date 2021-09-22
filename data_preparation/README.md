@@ -4,13 +4,14 @@ This folder contains code for data preparation for all the models. The seq2seq f
 the script `gather_corpus_stats.py`, creates the statistics table from the paper and gathers the tag information from the different data sources.
 
 ### Heideltime
-The subfolder `heideltime` contains the code related to the HeidelTime package. To run the codes you need the [heideltime python] (https://github.com/PhilipEHausner/python_heideltime/tree/master/python_heideltime)
+The subfolder `heideltime` contains the code related to the HeidelTime package. To run the code you need the [heideltime python wrapper](https://github.com/PhilipEHausner/python_heideltime/tree/master/python_heideltime)
 installed. `heideltime_generate_tempeval_data.py` tags the text from the benchmark data using the heideltime python package.
-We add the timeml tags to the beginning and end of the documents and try to match the formatting of the sources.
+We add the TimeML tags to the beginning and end of the documents and try to match the formatting of the sources.
 We used this script to compute the type F1 for wikiwars and tweets and also to compute the class confusion matrices.
 An example of the usages is below:
-``` python
-python heideltime_generate_tempeval_data.py --input_folder ./data/temporal/tempeval/tempeval_test --output_folder ./results/baselines/heideltime/tempeval --tweets False 
+```bash
+python heideltime_generate_tempeval_data.py --input_folder ./data/temporal/tempeval/tempeval_test \
+--output_folder ./results/baselines/heideltime/tempeval --tweets False 
 ```
 Where the input files are located in the path `input_folder` and the processed files will be stored in `output_folder`.
 The `tweets` tag should be set if the input data is the tweets dataset since it has different formatting than wikiwars and tempeval data.
@@ -20,14 +21,14 @@ The `tweets` tag should be set if the input data is the tweets dataset since it 
 ### Seq2seq data
 To generate examples for seq2seq models use `seq2seq_data_generator.py` as follows:
 
-``` python
+```bash
 python seq2seq_data_generator.py --input-dir-train ../data/temporal/tempeval/tempeval_train/TimeBank,../data/temporal/tempeval/tempeval_train/AQUAINT,../data/temporal/wikiwars/trainingset/tml,../data/temporal/tweets/trainingset/tml \
 --input-dir-test ../data/temporal/tempeval/tempeval_test \
 --output-file-train ./data/seq2seq/train/train_mixed.json \
 --output-file-test ../data/seq2seq/test/tempeval_test.json 
 ```
-Where test and train data folders are specified using `input-dir-train` and `input-dir-test`.
-The train data can take several folders, to generate a mixed training dataset. The folder paths should be separated by space.
+Test and train data folders are specified using `input-dir-train` and `input-dir-test`.
+The train data can take several folders, to generate a mixed training dataset. The folder paths should be separated by commas.
 The output file paths for train and test are specified in `output-file-train` and `output-file-test`.
 They should both have `.json` data type.
 The script will go over each file in the input directories and extract the timex3 tags and the raw text.
@@ -51,7 +52,7 @@ B-SET -- beginning tag of the set
 ```
 For easier processing, we input the `.json` files from seq2seq data. Use the `preprocess_BIO_tags.py` script as follows:
 
-```
+```bash
 python preprocess_BIO_tags.py --input-file-train ../data/seq2seq/train/tempeval_train.json \
 --input-file-test ../data/seq2seq/test/tempeval_test.json \
 --output-file-train ../data/BIO/train_staging/tempeval_train.txt \

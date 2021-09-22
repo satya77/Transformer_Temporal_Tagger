@@ -26,14 +26,13 @@ def get_args():
     args.add_argument("--output-file-test", type=str, default="../data/BIO/test_staging/tempeval_test.txt",
                       help="Defines the output file for tests")
 
-
     return args.parse_args()
 
 
 def process_file(in_fp, out_fp):
-    date=in_fp["date"]
-    text, annotations = get_text_and_annotations_and_date(in_fp["text"],in_fp["tagged_text"])
-    # Process with spacy for tokenization and seperation of sentences
+    date = in_fp["date"]
+    text, annotations = get_text_and_annotations_and_date(in_fp["text"], in_fp["tagged_text"])
+    # Process with spacy for tokenization and separation of sentences
     nlp = get_spacy_model()
     doc = nlp(text)
 
@@ -73,7 +72,6 @@ def process_file(in_fp, out_fp):
                 line, B = construct_line(token, next_annotation, B)
                 f.write(line)
 
-
             # Extra newline between sentences
             f.write("\n")
 
@@ -94,7 +92,7 @@ def get_text_and_annotations_and_date(content,tagged_content) -> (str, List[str]
             end = begin + len(timex.text.strip())
             annotations.append((begin, end, timex.attrs["type"], timex.attrs["value"]))
         except:
-            continue;
+            continue
 
     # Problems with newline chars force us to use this differently.
     text = content.replace("\n", " ")
@@ -129,19 +127,17 @@ if __name__ == "__main__":
     with open(args.output_file_test, "w") as f:
         f.write("")
 
-    data_files = {}
-    data_files["train"] = args.input_file_train
-    data_files["eval"] = args.input_file_test
-    #load the json dataset
+    data_files = {"train": args.input_file_train, "eval": args.input_file_test}
+    # load the json dataset
     datasets = load_dataset("json", data_files=data_files)
 
     val_data = datasets["eval"]
     train_data = datasets["train"]
 
-    #process the train data
+    # process the train data
     for sample in tqdm(train_data):
         process_file(sample, args.output_file_train)
-    #process the test data
+    # process the test data
     for sample in tqdm(val_data):
-        process_file(sample,args.output_file_test)
+        process_file(sample, args.output_file_test)
 

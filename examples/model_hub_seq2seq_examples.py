@@ -20,44 +20,45 @@ def find_timex_in_text(timex_preds, input_text, model_type):
             cleaned_text = cleaned_text[2:]
 
         if len(cleaned_text) < 2:
-            continue;
+            continue
+
         beginning_timex = original_paragraph[end_previous_timex:].find(cleaned_text)
-        if cleaned_text == "day" and beginning_timex != -1 and original_paragraph[
-                                                               beginning_timex - 2:beginning_timex] == "to":
+        if cleaned_text == "day" and beginning_timex != -1 and \
+                original_paragraph[beginning_timex - 2:beginning_timex] == "to":
             cleaned_text = "today"
             beginning_timex = original_paragraph[end_previous_timex:].find(cleaned_text)
-        # if the model predicted full year instead of the last two digits
+
+        # if the model predicted a full year instead of the last two digits
         if beginning_timex == -1 and len(cleaned_text) == 4 and cleaned_text.isdigit():
             beginning_timex = original_paragraph[end_previous_timex:].find(cleaned_text[2:])
             cleaned_text = cleaned_text[2:].strip()
 
-        # if the model predicted full year with an extra repeation
+        # if the model predicted full year with an extra repetition
         if beginning_timex == -1 and len(cleaned_text) == 6 and cleaned_text.isdigit():
             beginning_timex = original_paragraph[end_previous_timex:].find(cleaned_text[:-2])
             cleaned_text = cleaned_text[:-2].strip()
 
         # if the first word is repeating
-        elif beginning_timex == -1 and len(cleaned_text.split(" ")) > 1 and cleaned_text.split(" ")[0] == \
-                cleaned_text.split(" ")[1]:
+        elif beginning_timex == -1 and len(cleaned_text.split(" ")) > 1 and \
+                cleaned_text.split(" ")[0] == cleaned_text.split(" ")[1]:
             cleaned_text = ' '.join(cleaned_text.split(" ")[:-1])
             beginning_timex = original_paragraph[end_previous_timex:].find(cleaned_text)
 
         # if the first and last word is repeating
-        elif beginning_timex == -1 and len(cleaned_text.split(" ")) > 1 and cleaned_text.split(" ")[0] == \
-                cleaned_text.split(" ")[-1]:
+        elif beginning_timex == -1 and len(cleaned_text.split(" ")) > 1 and \
+                cleaned_text.split(" ")[0] == cleaned_text.split(" ")[-1]:
             cleaned_text = ' '.join(cleaned_text.split(" ")[1:])
             beginning_timex = original_paragraph[end_previous_timex:].find(cleaned_text)
         # if its single word separated by "-"
-        elif beginning_timex == -1 and len(cleaned_text.split(" ")) < 2 and len(
-                cleaned_text.split("-")) > 1:
+        elif beginning_timex == -1 and len(cleaned_text.split(" ")) < 2 and len(cleaned_text.split("-")) > 1:
             for word in cleaned_text.split("-"):
                 if word in original_paragraph[end_previous_timex:]:
                     cleaned_text = word
                     beginning_timex = original_paragraph[end_previous_timex:].find(cleaned_text)
-                    break;
+                    break
         # more than one words the first one is a digit
-        elif beginning_timex == -1 and len(cleaned_text.split(" ")) < 2 and len(
-                cleaned_text) > 2 and not cleaned_text[:1].isdigit() and cleaned_text[-1].isdigit():
+        elif beginning_timex == -1 and len(cleaned_text.split(" ")) < 2 and len(cleaned_text) > 2 and \
+                not cleaned_text[:1].isdigit() and cleaned_text[-1].isdigit():
             word = cleaned_text[:-1]
             if word.lower() in original_paragraph[end_previous_timex:].lower():
                 cleaned_text = word
@@ -68,10 +69,9 @@ def find_timex_in_text(timex_preds, input_text, model_type):
                 cleaned_text[0].isdigit() and cleaned_text[-1].isdigit():
             for i in range(2, len(cleaned_text)):
                 word = cleaned_text[:i]
-                if " " + word + " " in original_paragraph[
-                                       end_previous_timex:] or " " + word + "." in original_paragraph[
-                                                                                   end_previous_timex:] or " " + word + "," in original_paragraph[
-                                                                                                                               end_previous_timex:]:
+                if " " + word + " " in original_paragraph[end_previous_timex:] or \
+                        " " + word + "." in original_paragraph[end_previous_timex:] or \
+                        " " + word + "," in original_paragraph[end_previous_timex:]:
                     cleaned_text = word
                     beginning_timex = original_paragraph[end_previous_timex:].find(cleaned_text)
                     break;
@@ -80,10 +80,9 @@ def find_timex_in_text(timex_preds, input_text, model_type):
         if beginning_timex == -1 and len(cleaned_text.split(" ")) < 2:
             for i in range(2, len(cleaned_text)):
                 word = cleaned_text[:i]
-                if " " + word + " " in original_paragraph[
-                                       end_previous_timex:] or " " + word + "." in original_paragraph[
-                                                                                   end_previous_timex:] or " " + word + "," in original_paragraph[
-                                                                                                                               end_previous_timex:]:
+                if " " + word + " " in original_paragraph[end_previous_timex:] or \
+                        " " + word + "." in original_paragraph[end_previous_timex:] or \
+                        " " + word + "," in original_paragraph[end_previous_timex:]:
                     cleaned_text = word
                     beginning_timex = original_paragraph[end_previous_timex:].find(cleaned_text)
                     break;
@@ -113,19 +112,22 @@ def find_timex_in_text(timex_preds, input_text, model_type):
         index = index + 1
         beginning_timex = beginning_timex + end_previous_timex
         # if the word ended with one of these symbols do not put a space after timex tag
-        if original_paragraph[beginning_timex - 1:beginning_timex] in ["\n", "'", "-", ",", "\"",
-                                                                       "("] or original_paragraph[
-                                                                               beginning_timex - 1:beginning_timex].isdigit():
+        if original_paragraph[beginning_timex - 1:beginning_timex] in ["\n", "'", "-", ",", "\"", "("] or \
+                original_paragraph[beginning_timex - 1:beginning_timex].isdigit():
             new_text += f'{input_text[end_previous_timex:beginning_timex]}<TIMEX3 tid="t{index + 1}" ' \
-                        f'type="{timex.attrs["type"].upper()}" value="{timex.attrs["value"].strip().replace("</timex3>", "").replace("<", "").replace(">", "").replace(" ", "").upper()}">{input_text[beginning_timex:beginning_timex + len(cleaned_text)]}</TIMEX3>'
+                        f'type="{timex.attrs["type"].upper()}" ' \
+                        f'value="{timex.attrs["value"].strip().replace("</timex3>", "").replace("<", "").replace(">", "").replace(" ", "").upper()}">{input_text[beginning_timex:beginning_timex + len(cleaned_text)]}' \
+                        f'</TIMEX3>'
 
         else:  # otherwises put a space
             new_text += f'{input_text[end_previous_timex:beginning_timex]} <TIMEX3 tid="t{index + 1}" ' \
-                        f'type="{timex.attrs["type"].upper()}" value="{timex.attrs["value"].strip().replace("</timex3>", "").replace("<", "").replace(">", "").replace(" ", "").upper()}">{input_text[beginning_timex:beginning_timex + len(cleaned_text)]}</TIMEX3>'
+                        f'type="{timex.attrs["type"].upper()}" ' \
+                        f'value="{timex.attrs["value"].strip().replace("</timex3>", "").replace("<", "").replace(">", "").replace(" ", "").upper()}">{input_text[beginning_timex:beginning_timex + len(cleaned_text)]}' \
+                        f'</TIMEX3>'
 
         end_previous_timex = beginning_timex + len(cleaned_text)
 
-    new_text = new_text + input_text[end_previous_timex:]
+    new_text += input_text[end_previous_timex:]
     return new_text
 
 
@@ -142,7 +144,8 @@ if __name__ == "__main__":
     input_texts = ["I lived in New York for 10 years."]
     input_texts += ["Cumbre Vieja last erupted in 1971 and in 1949."]
     input_texts += ["The club's founding date, 15 January, was intentional."]
-    input_texts+=["Police were first called to the scene just after 7.25am this morning, Sunday, September 19, and have confirmed they will continue to remain in the area for some time."]
+    input_texts += [
+        "Police were first called to the scene just after 7.25am this morning, Sunday, September 19, and have confirmed they will continue to remain in the area for some time."]
 
     for input_text in input_texts:
         model_inputs = tokenizer(input_text, truncation=True, return_tensors="pt")

@@ -32,6 +32,7 @@ def get_args():
     args = parser.parse_args()
     return args
 
+
 def get_text_and_annotations_and_date(in_fp) -> (str, List[str], str):
     soup = BeautifulSoup(open(in_fp), "lxml")
     date = soup.findAll("dct")[0].findAll("timex3")[0].attrs["value"]
@@ -51,6 +52,7 @@ def get_text_and_annotations_and_date(in_fp) -> (str, List[str], str):
     # Problems with newline chars force us to use this differently.
     text = content.text.replace("\n", " ")
     return text, annotations, date
+
 
 def merge_tokens(bpe_text, bpe_predictions, id2label, tokenizer) -> List[Tuple[str, str]]:
     """
@@ -243,6 +245,7 @@ def get_pred_type(prediction: str) -> str:
     else:
         return prediction.split("-")[1]
 
+
 def get_model_and_tokenizers(args):
     if args.model_type == "date":
         model = BERTWithDateLayerTokenClassification.from_pretrained(args.model_dir)
@@ -296,10 +299,10 @@ if __name__ == '__main__':
                 result = model(input_ids=input_ids, attention_mask=attention_mask)
             else:  # CRF
                 result = model(input_ids=input_ids, attention_mask=attention_mask, inference_mode=True)
-        if  args.model_type !="crf":
+        if  args.model_type != "crf":
             classification = torch.argmax(result[0], dim=2)
         else:
-            classification= result[0]
+            classification = result[0]
 
         id2label = {v: k for k, v in model.config.label2id.items()}
         final_output = ""
@@ -307,8 +310,6 @@ if __name__ == '__main__':
         for raw_sentence, text_slice, classification_slice in zip(text, input_ids, classification):
             if not raw_sentence:  # skip empty lines.
                 continue
-            # import pdb
-            # pdb.set_trace()
             merged_tokens = merge_tokens(text_slice, classification_slice, id2label, text_tokenizer)
             annotated_text, annotation_id = insert_tags_in_raw_text(raw_sentence, merged_tokens, annotation_id)
             final_output += f"{annotated_text.strip(' ')}\n\n"

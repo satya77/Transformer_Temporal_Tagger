@@ -80,6 +80,7 @@ class NER(CRFTokenClassificationTask):
     def get_stop_label_id(self):
         return self._label_map['[SEP]']
 
+
 class Chunk(NER):
     def __init__(self):
         # in CONLL2003 dataset chunk column is second-to-last

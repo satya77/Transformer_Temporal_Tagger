@@ -116,8 +116,7 @@ def clean_predictions(decoded_preds):
     :return: cleaned text
     """
 
-    # take care of tag formatiing
-
+    # take care of tag formatting
     decoded_preds = decoded_preds.replace("&gt;", ">").replace("&lt;", "<")
     decoded_preds = decoded_preds.replace(" < / timex3  ", " </timex3") \
         .replace("< timex3 ", "<timex3 ") \
@@ -297,12 +296,12 @@ if __name__ == "__main__":
                 predictions = outputs.logits
             preds = predictions.argmax(-1)  # greedy decoding
             preds = np.where(np.array(mask) != -100, preds, tokenizer.pad_token_id)
-            decoded_preds = tokenizer.batch_decode(preds,
-                                                   skip_special_tokens=True)  # genrate the predictions and decode them
-            # paragraph spliting is different for wikiwars
-            split_on = "\n" if args.dataset_type=="wikiwars" else "\n\n"
+            # generate the predictions and decode them
+            decoded_preds = tokenizer.batch_decode(preds,skip_special_tokens=True)
+            # paragraph splitting is different for wikiwars
+            split_on = "\n" if args.dataset_type == "wikiwars" else "\n\n"
             decoded_preds = split_on.join(decoded_preds)
-            if args.dataset_type=="wikiwars":
+            if args.dataset_type == "wikiwars":
                 decoded_preds = "\n" + decoded_preds
 
             # clean the predictions.
@@ -374,37 +373,36 @@ if __name__ == "__main__":
                                 beginning_timex = original_paragraph[end_previous_timex:].find(cleaned_text)
                                 break;
                     # more than one words the first one is a digit
-                    elif beginning_timex == -1 and len(cleaned_text.split(" ")) < 2 and len(
-                            cleaned_text) > 2 and not cleaned_text[:1].isdigit() and cleaned_text[-1].isdigit():
+                    elif beginning_timex == -1 and len(cleaned_text.split(" ")) < 2 and len(cleaned_text) > 2 and \
+                            not cleaned_text[:1].isdigit() and cleaned_text[-1].isdigit():
                         word = cleaned_text[:-1]
                         if word.lower() in original_paragraph[end_previous_timex:].lower():
                             cleaned_text = word
                             beginning_timex = original_paragraph[end_previous_timex:].lower().find(cleaned_text.lower())
-                            break;
+                            break
+
                     # if its just a single word
-                    elif beginning_timex == -1 and len(cleaned_text.split(" ")) < 2 and len(cleaned_text) > 2 and not \
-                            cleaned_text[0].isdigit() and cleaned_text[-1].isdigit():
+                    elif beginning_timex == -1 and len(cleaned_text.split(" ")) < 2 and len(cleaned_text) > 2 and \
+                            not cleaned_text[0].isdigit() and cleaned_text[-1].isdigit():
                         for i in range(2, len(cleaned_text)):
                             word = cleaned_text[:i]
-                            if " " + word + " " in original_paragraph[
-                                                   end_previous_timex:] or " " + word + "." in original_paragraph[
-                                                                                               end_previous_timex:] or " " + word + "," in original_paragraph[
-                                                                                                                                           end_previous_timex:]:
+                            if " " + word + " " in original_paragraph[end_previous_timex:] or \
+                                    " " + word + "." in original_paragraph[end_previous_timex:] or \
+                                    " " + word + "," in original_paragraph[end_previous_timex:]:
                                 cleaned_text = word
                                 beginning_timex = original_paragraph[end_previous_timex:].find(cleaned_text)
-                                break;
+                                break
 
                     # if its just a single word ending with digits
                     if beginning_timex == -1 and len(cleaned_text.split(" ")) < 2:
                         for i in range(2, len(cleaned_text)):
                             word = cleaned_text[:i]
-                            if " " + word + " " in original_paragraph[
-                                                   end_previous_timex:] or " " + word + "." in original_paragraph[
-                                                                                               end_previous_timex:] or " " + word + "," in original_paragraph[
-                                                                                                                                           end_previous_timex:]:
+                            if " " + word + " " in original_paragraph[end_previous_timex:] or \
+                                    " " + word + "." in original_paragraph[end_previous_timex:] or \
+                                    " " + word + "," in original_paragraph[end_previous_timex:]:
                                 cleaned_text = word
                                 beginning_timex = original_paragraph[end_previous_timex:].find(cleaned_text)
-                                break;
+                                break
                     # if you can not find it, see if you can match the first word in the multi word one
                     if beginning_timex == -1 and len(cleaned_text.split(" ")) > 1:
                         for word in cleaned_text.split(" "):
@@ -413,7 +411,7 @@ if __name__ == "__main__":
                                                                                                 "have", "at", "be"]:
                                 cleaned_text = word
                                 beginning_timex = original_paragraph[end_previous_timex:].find(cleaned_text)
-                                break;
+                                break
 
                     if beginning_timex == -1 and cleaned_text.lower() in original_paragraph[
                                                                          end_previous_timex:].lower():
@@ -435,11 +433,15 @@ if __name__ == "__main__":
                                                                                    "("] or original_paragraph[
                                                                                            beginning_timex - 1:beginning_timex].isdigit():
                         new_text += f'{original_para[end_previous_timex:beginning_timex]}<TIMEX3 tid="t{index + 1}" ' \
-                                    f'type="{timex.attrs["type"].upper()}" value="{timex.attrs["value"].strip().replace("</timex3>", "").replace("<", "").replace(">", "").replace(" ", "").upper()}">{original_para[beginning_timex:beginning_timex + len(cleaned_text)]}</TIMEX3>'
+                                    f'type="{timex.attrs["type"].upper()}" ' \
+                                    f'value="{timex.attrs["value"].strip().replace("</timex3>", "").replace("<", "").replace(">", "").replace(" ", "").upper()}">{original_para[beginning_timex:beginning_timex + len(cleaned_text)]}' \
+                                    f'</TIMEX3>'
 
                     else:  # otherwises put a space
                         new_text += f'{original_para[end_previous_timex:beginning_timex]} <TIMEX3 tid="t{index + 1}" ' \
-                                    f'type="{timex.attrs["type"].upper()}" value="{timex.attrs["value"].strip().replace("</timex3>", "").replace("<", "").replace(">", "").replace(" ", "").upper()}">{original_para[beginning_timex:beginning_timex + len(cleaned_text)]}</TIMEX3>'
+                                    f'type="{timex.attrs["type"].upper()}" ' \
+                                    f'value="{timex.attrs["value"].strip().replace("</timex3>", "").replace("<", "").replace(">", "").replace(" ", "").upper()}">{original_para[beginning_timex:beginning_timex + len(cleaned_text)]}' \
+                                    f'</TIMEX3>'
 
                     end_previous_timex = beginning_timex + len(cleaned_text)
 

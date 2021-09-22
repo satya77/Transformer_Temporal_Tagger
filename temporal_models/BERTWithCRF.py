@@ -1,17 +1,18 @@
-#code adapted form https://github.com/Louis-udm/NER-BERT-CRF/blob/master/NER_BERT_CRF.py
+# code adapted form https://github.com/Louis-udm/NER-BERT-CRF/blob/master/NER_BERT_CRF.py
 import torch
-from transformers import BertModel, BertConfig ##### import these guys -important otherwise config error and you spend an hour figuring out!
+from transformers import BertModel, BertConfig
 from transformers.models.bert.modeling_bert import BertPreTrainedModel
 from torch import nn
-from torch.nn import CrossEntropyLoss, BCELoss, LayerNorm
+from torch.nn import LayerNorm
 from transformers.modeling_outputs import TokenClassifierOutput
 
 # Hack to guarantee backward-compatibility.
 BertLayerNorm = LayerNorm
 
 
-def log_sum_exp_batch(log_Tensor, axis=-1): # shape (batch_size,n,m)
-    return torch.max(log_Tensor, axis)[0]+torch.log(torch.exp(log_Tensor-torch.max(log_Tensor, axis)[0].view(log_Tensor.shape[0],-1,1)).sum(axis))
+def log_sum_exp_batch(log_Tensor, axis=-1):  # shape (batch_size,n,m)
+    return torch.max(log_Tensor, axis)[0] + torch.log(
+        torch.exp(log_Tensor - torch.max(log_Tensor, axis)[0].view(log_Tensor.shape[0], -1, 1)).sum(axis))
 
 
 class BERT_CRF_NER(BertPreTrainedModel):
@@ -26,7 +27,7 @@ class BERT_CRF_NER(BertPreTrainedModel):
         # self.max_seq_length = max_seq_length
         self.batch_size = config.batch_size
 
-        # use pretrainded BertModel
+        # use a pre-trainded BertModel
         self.bert = BertModel(config, add_pooling_layer=False)
 
         self.dropout = torch.nn.Dropout(0.2)
@@ -86,26 +87,26 @@ class BERT_CRF_NER(BertPreTrainedModel):
         return log_prob_all_barX
 
     def _get_bert_features(self, input_ids,
-            attention_mask,
-            token_type_ids,
-            position_ids,
-            head_mask,
-            inputs_embeds,
-            output_attentions,
-            output_hidden_states,
-            return_dict):
+                           attention_mask,
+                           token_type_ids,
+                           position_ids,
+                           head_mask,
+                           inputs_embeds,
+                           output_attentions,
+                           output_hidden_states,
+                           return_dict):
         """
         sentences -> word embedding -> lstm -> MLP -> feats
         """
         bert_seq_out = self.bert(input_ids,
-            attention_mask=attention_mask,
-            token_type_ids=token_type_ids,
-            position_ids=position_ids,
-            head_mask=head_mask,
-            inputs_embeds=inputs_embeds,
-            output_attentions=output_attentions,
-            output_hidden_states=output_hidden_states,
-            return_dict=return_dict)  # output_all_encoded_layers=False removed
+                                 attention_mask=attention_mask,
+                                 token_type_ids=token_type_ids,
+                                 position_ids=position_ids,
+                                 head_mask=head_mask,
+                                 inputs_embeds=inputs_embeds,
+                                 output_attentions=output_attentions,
+                                 output_hidden_states=output_hidden_states,
+                                 return_dict=return_dict)  # output_all_encoded_layers=False removed
 
         bert_seq_out_last = bert_seq_out[0]
         bert_seq_out_last = self.dropout(bert_seq_out_last)
@@ -128,10 +129,10 @@ class BERT_CRF_NER(BertPreTrainedModel):
         score = torch.zeros((feats.shape[0], 1)).to(self.device)
         # the 0th node is start_label->start_word, the probability of them=1. so t begins with 1.
         for t in range(1, T):
-
             score = score + \
-                batch_transitions.gather(-1, (label_ids[:, t] * self.num_labels + label_ids[:, t-1]).view(-1, 1)) + \
-                feats[:, t].gather(-1, label_ids[:, t].view(-1, 1)).view(-1, 1)
+                    batch_transitions.gather(-1,
+                                             (label_ids[:, t] * self.num_labels + label_ids[:, t - 1]).view(-1, 1)) + \
+                    feats[:, t].gather(-1, label_ids[:, t].view(-1, 1)).view(-1, 1)
         return score
 
     def _viterbi_decode(self, feats):
@@ -166,32 +167,32 @@ class BERT_CRF_NER(BertPreTrainedModel):
         # max p(z1:t,all_x|theta)
         max_logLL_allz_allx, path[:, -1] = torch.max(log_delta.squeeze(), -1)
 
-        for t in range(T-2, -1, -1):
+        for t in range(T - 2, -1, -1):
             # choose the state of z_t according the state chosen of z_t+1.
-            path[:, t] = psi[:, t+1].gather(-1, path[:, t+1].view(-1, 1)).squeeze()
+            path[:, t] = psi[:, t + 1].gather(-1, path[:, t + 1].view(-1, 1)).squeeze()
 
         return max_logLL_allz_allx, path
 
     def neg_log_likelihood(self, input_ids,
-            attention_mask,
-            token_type_ids,
-            position_ids,
-            head_mask,
-            inputs_embeds,
-            output_attentions,
-            output_hidden_states,
-            return_dict,
-            label_ids):
+                           attention_mask,
+                           token_type_ids,
+                           position_ids,
+                           head_mask,
+                           inputs_embeds,
+                           output_attentions,
+                           output_hidden_states,
+                           return_dict,
+                           label_ids):
 
         bert_feats, _ = self._get_bert_features(input_ids,
-            attention_mask,
-            token_type_ids,
-            position_ids,
-            head_mask,
-            inputs_embeds,
-            output_attentions,
-            output_hidden_states,
-            return_dict)
+                                                attention_mask,
+                                                token_type_ids,
+                                                position_ids,
+                                                head_mask,
+                                                inputs_embeds,
+                                                output_attentions,
+                                                output_hidden_states,
+                                                return_dict)
 
         forward_score = self._forward_alg(bert_feats)
         # p(X=w1:t,Zt=tag1:t)=...p(Zt=tag_t|Zt-1=tag_t-1)p(xt|Zt=tag_t)...
@@ -217,29 +218,29 @@ class BERT_CRF_NER(BertPreTrainedModel):
     ):
         # Get the emission scores from the BiLSTM
         bert_feats, bert_out = self._get_bert_features(input_ids,
-            attention_mask,
-            token_type_ids,
-            position_ids,
-            head_mask,
-            inputs_embeds,
-            output_attentions,
-            output_hidden_states,
-            return_dict)
+                                                       attention_mask,
+                                                       token_type_ids,
+                                                       position_ids,
+                                                       head_mask,
+                                                       inputs_embeds,
+                                                       output_attentions,
+                                                       output_hidden_states,
+                                                       return_dict)
 
         # Find the best path, given the features.
         score, label_seq_ids = self._viterbi_decode(bert_feats)
 
         if not inference_mode:
             neg_log_likelihood = self.neg_log_likelihood(input_ids,
-                attention_mask,
-                token_type_ids,
-                position_ids,
-                head_mask,
-                inputs_embeds,
-                output_attentions,
-                output_hidden_states,
-                return_dict,
-                labels)
+                                                         attention_mask,
+                                                         token_type_ids,
+                                                         position_ids,
+                                                         head_mask,
+                                                         inputs_embeds,
+                                                         output_attentions,
+                                                         output_hidden_states,
+                                                         return_dict,
+                                                         labels)
 
             return TokenClassifierOutput(
                 loss=neg_log_likelihood,
@@ -255,5 +256,3 @@ class BERT_CRF_NER(BertPreTrainedModel):
                 hidden_states=bert_out.hidden_states,
                 attentions=bert_out.attentions,
             )
-
-
