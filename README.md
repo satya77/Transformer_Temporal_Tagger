@@ -3,7 +3,7 @@ Satya Almasian\*, Dennis Aumiller\*, and Michael Gertz
 Heidelberg University  
 Contact us via: `<lastname>@informatik.uni-heidelberg.de`
 
-Code and data for the paper [BERT Got a Date: Introducing Transformers to Temporal Tagging](https://dbs.ifi.uni-heidelberg.de/).
+Code and data for the paper [BERT Got a Date: Introducing Transformers to Temporal Tagging](https://arxiv.org/abs/2109.14927).
 Temporal tagging is the task of identification of temporal mentions in text; these expressions can be further divided into different type categories, which is what we refer to as expression (type) classification.
 This repository describes two different types of transformer-based temporal taggers, which are both additionally capable of expression classification.
 We follow the TIMEX3 schema definitions in their styling and expression classes (notably, the latter are one of `TIME, DATE, SET, DURATION`). The available data sources for temporal tagging are in the TimeML format, which is essentially a form of XML with tags encapsulating temporal expressions.  
