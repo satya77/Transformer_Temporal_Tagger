@@ -125,7 +125,8 @@ If you use our models in your work, we would appreciate attribution with the fol
 @article{almasian2021bert,
   title={{BERT got a Date: Introducing Transformers to Temporal Tagging}},
   author={Almasian, Satya and Aumiller, Dennis and Gertz, Michael},
-  journal={arXiv},
+  journal={arXiv preprint arXiv:2109.14927},
+  url={https://arxiv.org/abs/2109.14927},
   year={2021}
 }
 ```
