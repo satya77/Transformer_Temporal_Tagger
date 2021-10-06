@@ -14,6 +14,12 @@ Due to lockdown restrictions, 2020 might go down as the worst economic year in o
 For more data instances, look at the content of `data.zip`. Refer to the README file in the respective unzipped folder for more information.  
 This repository contains code for data preparation and training of a seq2seq model (encoder-decoder architectured initialized from encoder-only architectures, specifically BERT or RoBERTa), as well as three token classification encoders (BERT-based).  
 The output of the models discussed in the paper is in the `results` folder. Refer to the README file in the folder for more information.
+** the zip files are uploaded using git lsf and require an installation to work properly. **
+
+To install git lsf on ubuntu: 
+
+- Download/Install Git LFS (sudo apt-get install git-lfs, or download from https://git-lfs.github.com/)
+- Run git lfs install 
 
 ## Data Preparation
 
