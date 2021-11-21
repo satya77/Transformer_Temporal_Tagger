@@ -5,11 +5,11 @@ import os
 import re
 from argparse import ArgumentParser
 from typing import List
+from tqdm import tqdm
 
 import numpy as np
 import torch
 from bs4 import BeautifulSoup
-from tqdm import tqdm
 from transformers import BertTokenizerFast, RobertaTokenizerFast, EncoderDecoderModel
 
 
@@ -109,16 +109,16 @@ def get_text_and_annotations_and_date(in_fp) -> (str, List[str], str):
     return text, annotations, date
 
 
-def clean_predictions(decoded_preds):
+def clean_predictions(prediction):
     """
-    clean the seq2seq predictions
-    :param decoded_preds: the raw predictionss
+    Clean a prediction from a Encoder-Decoder model.
+    :param prediction: the raw prediction
     :return: cleaned text
     """
 
     # take care of tag formatting
-    decoded_preds = decoded_preds.replace("&gt;", ">").replace("&lt;", "<")
-    decoded_preds = decoded_preds.replace(" < / timex3  ", " </timex3") \
+    prediction = prediction.replace("&gt;", ">").replace("&lt;", "<")
+    prediction = prediction.replace(" < / timex3  ", " </timex3") \
         .replace("< timex3 ", "<timex3 ") \
         .replace("< / timex3 >", "</timex3>") \
         .replace("/ timex3 >", "</timex3>") \
@@ -126,118 +126,117 @@ def clean_predictions(decoded_preds):
         .replace("</timex3></timex3>", "</timex3>") \
         .replace("timex&gt;", "</timex3>") \
         .replace("timex ", "</timex3> ").replace("</time x3>","</timex3>")
-    decoded_preds = re.sub(r"([a-z])timex3>", "\g<1> </timex3>", decoded_preds)
-    decoded_preds = re.sub(r"</timex3></timex3>", "</timex3>", decoded_preds)
-    decoded_preds = re.sub(r"timex>", "</timex3>", decoded_preds)
-    decoded_preds = re.sub(r" </ </timex3>", "</timex3>", decoded_preds)
+    prediction = re.sub(r"([a-z])timex3>", "\g<1> </timex3>", prediction)
+    prediction = re.sub(r"</timex3></timex3>", "</timex3>", prediction)
+    prediction = re.sub(r"timex>", "</timex3>", prediction)
+    prediction = re.sub(r" </ </timex3>", "</timex3>", prediction)
 
     # remove the most prominent hallucinations.
-    decoded_preds = decoded_preds.replace('type="D"', 'type="DATE"')
-    decoded_preds = decoded_preds.replace('type="DATEATION"', 'type="DATE"')
-    decoded_preds = decoded_preds.replace('type="DUR"', 'type="DATE"')
-    decoded_preds = decoded_preds.replace('type="S"', 'type="SET"')
-    decoded_preds = decoded_preds.replace('type="S"', 'type="SET"')
-    decoded_preds = decoded_preds.replace('type="TIMEATE"', 'type="TIME"')
-    decoded_preds = decoded_preds.replace('type="TIMEATEATION"', 'type="TIME"')
-    decoded_preds = decoded_preds.replace('type="TIMEURATION"', 'type="TIME"')
-    decoded_preds = decoded_preds.replace('value="PENT_REF"', 'value="PRESENT_REF"')
-    decoded_preds = decoded_preds.replace('value="PRESXD"', 'value="PRESENT_REF"')
-    decoded_preds = decoded_preds.replace('value="PRESENTD"', 'value="PRESENT_REF"')
-    decoded_preds = decoded_preds.replace('type="SETURY"', 'type="SET"')
-    decoded_preds = decoded_preds.replace('type="SETATEY"', 'type="SET"')
-    decoded_preds = decoded_preds.replace('type="SETATE"', 'type="SET"')
-    decoded_preds = decoded_preds.replace('type="DATEATE"', 'type="DATE"')
-    decoded_preds = decoded_preds.replace('type="2018ATE"', 'type="DATE"')
-    decoded_preds = decoded_preds.replace('type="SETURATION"', 'type="DURATION"')
-    decoded_preds = decoded_preds.replace('type="SETATEATION"', 'type="SET"')
-    decoded_preds = decoded_preds.replace('type="SETSETY"', 'type="SET"')
-    decoded_preds = decoded_preds.replace('fre="SET"', 'type="SET"')
-    decoded_preds = decoded_preds.replace('fre="D"', 'type="DATE"')
-    decoded_preds = decoded_preds.replace('type="2014ATE"', 'type="DATE"')
-    decoded_preds = decoded_preds.replace('quan = " set "', 'type="SET"')
-    decoded_preds = decoded_preds.replace('quant="D"', 'type="DATE"')
-    decoded_preds = decoded_preds.replace('quan=" duration "', 'type="DURATION"')
-    decoded_preds = decoded_preds.replace('quan = " duration "', 'type="DURATION"')
-    decoded_preds = decoded_preds.replace('fr=" date "', 'type="DATE"')
-    decoded_preds = decoded_preds.replace('nowENT', 'now"')
-    decoded_preds = decoded_preds.replace('WeekEND', 'Weekends"')
-    decoded_preds = decoded_preds.replace('yesterdayENT', 'yesterday"')
-    decoded_preds = decoded_preds.replace('yesterdayXX', 'yesterday"')
-    decoded_preds = decoded_preds.replace('type = "date"', 'type="DATE"')
-    decoded_preds = decoded_preds.replace('type = " date "', 'type="DATE"')
-    decoded_preds = decoded_preds.replace('type = "set"', 'type="SET"')
-    decoded_preds = decoded_preds.replace('type = " set "', 'type="SET"')
-    decoded_preds = decoded_preds.replace('type = " duration "', 'type="DURATION"')
-    decoded_preds = decoded_preds.replace('type = "duration"', 'type="DURATION"')
-    decoded_preds = decoded_preds.replace('type = "time"', 'type="TIME"')
-    decoded_preds = decoded_preds.replace('type = " time "', 'type="TIME"')
-    decoded_preds = decoded_preds.replace('type = "setate"', 'type="SET"')
-    decoded_preds = decoded_preds.replace('type="SETVERY"', 'type="SET"')
-    decoded_preds = decoded_preds.replace('type=""', 'type="DATE"')
-    decoded_preds = decoded_preds.replace('quant="SET"', 'type="SET""')
-    decoded_preds = decoded_preds.replace('fr = " set "', 'type="SET""')
-    decoded_preds = decoded_preds.replace('fre="D" "', 'type="DATE""')
-    decoded_preds = decoded_preds.replace('2014timex3', '2014</timex3>')
-    decoded_preds = decoded_preds.replace('yesterdayterday', 'yesterday')
-    decoded_preds = decoded_preds.replace('tomorrowENT', 'tomorrow')
-    decoded_preds = decoded_preds.replace('tomorroworrow', 'tomorrow')
-    decoded_preds = decoded_preds.replace('tomorrowXX', 'tomorrow')
-    decoded_preds = decoded_preds.replace('todayorrow', 'tomorrow')
-    decoded_preds = decoded_preds.replace('summermer', 'summer')
-    decoded_preds = decoded_preds.replace('summerUT', 'summer')
-    decoded_preds = decoded_preds.replace('summerSU', 'summer')
-    decoded_preds = decoded_preds.replace('tomXX', 'tomorrow')
-    decoded_preds = decoded_preds.replace('tom60', 'tomorrow')
-    decoded_preds = re.sub('<timex3>', '</timex3>', decoded_preds)
-    decoded_preds = decoded_preds.replace('<timex3 > = " date "', '<timex3  type="DATE"')
-    decoded_preds = decoded_preds.replace('<timex3> = " date "', '<timex3  type="DATE"')
-    decoded_preds = decoded_preds.replace('quan=" duration "', 'type="DURATION"')
-    decoded_preds = decoded_preds.replace('fr =" date "', 'type="DATE"')
-    decoded_preds = decoded_preds.replace('fr = " date "', 'type="DATE"')
+    prediction = prediction.replace('type="D"', 'type="DATE"')
+    prediction = prediction.replace('type="DATEATION"', 'type="DATE"')
+    prediction = prediction.replace('type="DUR"', 'type="DATE"')
+    prediction = prediction.replace('type="S"', 'type="SET"')
+    prediction = prediction.replace('type="S"', 'type="SET"')
+    prediction = prediction.replace('type="TIMEATE"', 'type="TIME"')
+    prediction = prediction.replace('type="TIMEATEATION"', 'type="TIME"')
+    prediction = prediction.replace('type="TIMEURATION"', 'type="TIME"')
+    prediction = prediction.replace('value="PENT_REF"', 'value="PRESENT_REF"')
+    prediction = prediction.replace('value="PRESXD"', 'value="PRESENT_REF"')
+    prediction = prediction.replace('value="PRESENTD"', 'value="PRESENT_REF"')
+    prediction = prediction.replace('type="SETURY"', 'type="SET"')
+    prediction = prediction.replace('type="SETATEY"', 'type="SET"')
+    prediction = prediction.replace('type="SETATE"', 'type="SET"')
+    prediction = prediction.replace('type="DATEATE"', 'type="DATE"')
+    prediction = prediction.replace('type="2018ATE"', 'type="DATE"')
+    prediction = prediction.replace('type="SETURATION"', 'type="DURATION"')
+    prediction = prediction.replace('type="SETATEATION"', 'type="SET"')
+    prediction = prediction.replace('type="SETSETY"', 'type="SET"')
+    prediction = prediction.replace('fre="SET"', 'type="SET"')
+    prediction = prediction.replace('fre="D"', 'type="DATE"')
+    prediction = prediction.replace('type="2014ATE"', 'type="DATE"')
+    prediction = prediction.replace('quan = " set "', 'type="SET"')
+    prediction = prediction.replace('quant="D"', 'type="DATE"')
+    prediction = prediction.replace('quan=" duration "', 'type="DURATION"')
+    prediction = prediction.replace('quan = " duration "', 'type="DURATION"')
+    prediction = prediction.replace('fr=" date "', 'type="DATE"')
+    prediction = prediction.replace('nowENT', 'now"')
+    prediction = prediction.replace('WeekEND', 'Weekends"')
+    prediction = prediction.replace('yesterdayENT', 'yesterday"')
+    prediction = prediction.replace('yesterdayXX', 'yesterday"')
+    prediction = prediction.replace('type = "date"', 'type="DATE"')
+    prediction = prediction.replace('type = " date "', 'type="DATE"')
+    prediction = prediction.replace('type = "set"', 'type="SET"')
+    prediction = prediction.replace('type = " set "', 'type="SET"')
+    prediction = prediction.replace('type = " duration "', 'type="DURATION"')
+    prediction = prediction.replace('type = "duration"', 'type="DURATION"')
+    prediction = prediction.replace('type = "time"', 'type="TIME"')
+    prediction = prediction.replace('type = " time "', 'type="TIME"')
+    prediction = prediction.replace('type = "setate"', 'type="SET"')
+    prediction = prediction.replace('type="SETVERY"', 'type="SET"')
+    prediction = prediction.replace('type=""', 'type="DATE"')
+    prediction = prediction.replace('quant="SET"', 'type="SET""')
+    prediction = prediction.replace('fr = " set "', 'type="SET""')
+    prediction = prediction.replace('fre="D" "', 'type="DATE""')
+    prediction = prediction.replace('2014timex3', '2014</timex3>')
+    prediction = prediction.replace('yesterdayterday', 'yesterday')
+    prediction = prediction.replace('tomorrowENT', 'tomorrow')
+    prediction = prediction.replace('tomorroworrow', 'tomorrow')
+    prediction = prediction.replace('tomorrowXX', 'tomorrow')
+    prediction = prediction.replace('todayorrow', 'tomorrow')
+    prediction = prediction.replace('summermer', 'summer')
+    prediction = prediction.replace('summerUT', 'summer')
+    prediction = prediction.replace('summerSU', 'summer')
+    prediction = prediction.replace('tomXX', 'tomorrow')
+    prediction = prediction.replace('tom60', 'tomorrow')
+    prediction = re.sub('<timex3>', '</timex3>', prediction)
+    prediction = prediction.replace('<timex3 > = " date "', '<timex3  type="DATE"')
+    prediction = prediction.replace('<timex3> = " date "', '<timex3  type="DATE"')
+    prediction = prediction.replace('quan=" duration "', 'type="DURATION"')
+    prediction = prediction.replace('fr =" date "', 'type="DATE"')
+    prediction = prediction.replace('fr = " date "', 'type="DATE"')
 
     # some more tag formating
-    decoded_preds = decoded_preds.replace(':">">">', '')
-    decoded_preds = decoded_preds.replace('>>', '>')
-    decoded_preds = decoded_preds.replace('":">', '">')
-    decoded_preds = decoded_preds.replace('P3:">:">-', 'P3')
-    decoded_preds = decoded_preds.replace('</ ', '')
-    decoded_preds = re.sub(r"\"\>[\w\:\-]+\"\>", '">', decoded_preds)
-    decoded_preds = re.sub(r"\<\/[\w\-\:]+\<\/", '</', decoded_preds)
-    decoded_preds = re.sub(r"\"\>XX\-", '">', decoded_preds)
-    decoded_preds = re.sub(r'\">:\">', '">', decoded_preds)
-    decoded_preds = re.sub(r':timex3>.', '</timex3>', decoded_preds)
-    decoded_preds = re.sub('\w+timex3\stype', '<timex3 type', decoded_preds)
-    decoded_preds = re.sub('\d+timex3\stype', '<timex3 type', decoded_preds)
-    decoded_preds = re.sub('<timex3>', '</timex3>', decoded_preds)
-    decoded_preds = re.sub('--timex3>', '</timex3>', decoded_preds)
-    decoded_preds = decoded_preds.replace('<timex3> = " date "', '<timex3  type="DATE"')
-    truncated_values = re.findall(r'value=\"[\w\-\:]+\s', decoded_preds)
+    prediction = prediction.replace(':">">">', '')
+    prediction = prediction.replace('>>', '>')
+    prediction = prediction.replace('":">', '">')
+    prediction = prediction.replace('P3:">:">-', 'P3')
+    prediction = prediction.replace('</ ', '')
+    prediction = re.sub(r"\"\>[\w\:\-]+\"\>", '">', prediction)
+    prediction = re.sub(r"\<\/[\w\-\:]+\<\/", '</', prediction)
+    prediction = re.sub(r"\"\>XX\-", '">', prediction)
+    prediction = re.sub(r'\">:\">', '">', prediction)
+    prediction = re.sub(r':timex3>.', '</timex3>', prediction)
+    prediction = re.sub('\w+timex3\stype', '<timex3 type', prediction)
+    prediction = re.sub('\d+timex3\stype', '<timex3 type', prediction)
+    prediction = re.sub('<timex3>', '</timex3>', prediction)
+    prediction = re.sub('--timex3>', '</timex3>', prediction)
+    prediction = prediction.replace('<timex3> = " date "', '<timex3  type="DATE"')
+    truncated_values = re.findall(r'value=\"[\w\-\:]+\s', prediction)
     for v in truncated_values:
-        decoded_preds = decoded_preds.replace(v, v + '">')
+        prediction = prediction.replace(v, v + '">')
 
-    concatanated_value = re.findall(r'\w+\-timex3\>', decoded_preds)
+    concatanated_value = re.findall(r'\w+\-timex3\>', prediction)
     for v in concatanated_value:
-        decoded_preds = decoded_preds.replace(v, v.split("-")[0] + '"<' + v.split("-")[1])
+        prediction = prediction.replace(v, v.split("-")[0] + '"<' + v.split("-")[1])
 
-    additional_white_space = re.findall(r'value=\"[\d\w\:\-\_]+\s\"', decoded_preds)
+    additional_white_space = re.findall(r'value=\"[\d\w\:\-\_]+\s\"', prediction)
     for v in additional_white_space:
-        decoded_preds = decoded_preds.replace(v, v.replace(" ", ""))
+        prediction = prediction.replace(v, v.replace(" ", ""))
 
-    double_end = re.findall(r'\"\>[\w]+\"\>', decoded_preds)
+    double_end = re.findall(r'\"\>[\w]+\"\>', prediction)
     for v in double_end:
-        decoded_preds = decoded_preds.replace(v, v[2:])
+        prediction = prediction.replace(v, v[2:])
 
-    strange_values = re.findall(r'\"\:\"\>', decoded_preds)
+    strange_values = re.findall(r'\"\:\"\>', prediction)
     for v in strange_values:
-        decoded_preds = decoded_preds.replace(v, '">')
+        prediction = prediction.replace(v, '">')
 
-    decoded_preds = re.sub(r' <\n', '\n', decoded_preds)
-    decoded_preds = re.sub(r'  ', ' ', decoded_preds)
+    prediction = re.sub(r' <\n', '\n', prediction)
+    prediction = re.sub(r'  ', ' ', prediction)
 
-    decoded_preds = re.sub(r'\b(\w+)( \1\b)+', r'\1', decoded_preds)
+    prediction = re.sub(r'\b(\w+)( \1\b)+', r'\1', prediction)
 
-
-    return decoded_preds
+    return prediction
 
 
 if __name__ == "__main__":
@@ -297,7 +296,7 @@ if __name__ == "__main__":
             preds = predictions.argmax(-1)  # greedy decoding
             preds = np.where(np.array(mask) != -100, preds, tokenizer.pad_token_id)
             # generate the predictions and decode them
-            decoded_preds = tokenizer.batch_decode(preds,skip_special_tokens=True)
+            decoded_preds = tokenizer.batch_decode(preds, skip_special_tokens=True)
             # paragraph splitting is different for wikiwars
             split_on = "\n" if args.dataset_type == "wikiwars" else "\n\n"
             decoded_preds = split_on.join(decoded_preds)
@@ -331,13 +330,13 @@ if __name__ == "__main__":
                 for timex in timex_preds:
                     cleaned_text = timex.text.replace("<", "").replace(">", "").replace("\"", "").strip()
 
-                    # sometimes the cleaninng has leftovers
+                    # sometimes the cleaned string has "leftovers"
                     if cleaned_text.startswith("- "):
                         cleaned_text = cleaned_text[2:]
 
                     if len(cleaned_text) < 2 or cleaned_text in ["Yesterday", "BP", "regularly", "t.", "11",
                                                                  "the same time in", "'s", "becoming", "at"]:
-                        continue;
+                        continue
                     beginning_timex = original_paragraph[end_previous_timex:].find(cleaned_text)
                     if cleaned_text == "day" and beginning_timex != -1 and original_paragraph[
                                                                            beginning_timex - 2:beginning_timex] == "to":
@@ -348,7 +347,7 @@ if __name__ == "__main__":
                         beginning_timex = original_paragraph[end_previous_timex:].find(cleaned_text[2:])
                         cleaned_text = cleaned_text[2:].strip()
 
-                    # if the model predicted full year with an extra repeation
+                    # if the model predicted full year with an extra repetition
                     if beginning_timex == -1 and len(cleaned_text) == 6 and cleaned_text.isdigit():
                         beginning_timex = original_paragraph[end_previous_timex:].find(cleaned_text[:-2])
                         cleaned_text = cleaned_text[:-2].strip()
@@ -371,8 +370,8 @@ if __name__ == "__main__":
                             if word in original_paragraph[end_previous_timex:]:
                                 cleaned_text = word
                                 beginning_timex = original_paragraph[end_previous_timex:].find(cleaned_text)
-                                break;
-                    # more than one words the first one is a digit
+                                break
+                    # more than one word; the first one is a digit
                     elif beginning_timex == -1 and len(cleaned_text.split(" ")) < 2 and len(cleaned_text) > 2 and \
                             not cleaned_text[:1].isdigit() and cleaned_text[-1].isdigit():
                         word = cleaned_text[:-1]
@@ -381,7 +380,7 @@ if __name__ == "__main__":
                             beginning_timex = original_paragraph[end_previous_timex:].lower().find(cleaned_text.lower())
                             break
 
-                    # if its just a single word
+                    # if it's just a single word
                     elif beginning_timex == -1 and len(cleaned_text.split(" ")) < 2 and len(cleaned_text) > 2 and \
                             not cleaned_text[0].isdigit() and cleaned_text[-1].isdigit():
                         for i in range(2, len(cleaned_text)):
@@ -437,7 +436,7 @@ if __name__ == "__main__":
                                     f'value="{timex.attrs["value"].strip().replace("</timex3>", "").replace("<", "").replace(">", "").replace(" ", "").upper()}">{original_para[beginning_timex:beginning_timex + len(cleaned_text)]}' \
                                     f'</TIMEX3>'
 
-                    else:  # otherwises put a space
+                    else:  # otherwise put a space
                         new_text += f'{original_para[end_previous_timex:beginning_timex]} <TIMEX3 tid="t{index + 1}" ' \
                                     f'type="{timex.attrs["type"].upper()}" ' \
                                     f'value="{timex.attrs["value"].strip().replace("</timex3>", "").replace("<", "").replace(">", "").replace(" ", "").upper()}">{original_para[beginning_timex:beginning_timex + len(cleaned_text)]}' \

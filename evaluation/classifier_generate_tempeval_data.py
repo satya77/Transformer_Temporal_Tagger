@@ -12,9 +12,9 @@ from typing import List, Tuple
 from tqdm import tqdm
 from bs4 import BeautifulSoup
 
-from temporal_models.BERTWithDateLayerTokenClassification import BERTWithDateLayerTokenClassification
-from temporal_models.NumBertTokenizer import NumBertTokenizer
-from temporal_models.BERTWithCRF import BERT_CRF_NER
+from temporal_taggers.tagger.BERTWithDateLayerTokenClassification import BERTWithDateLayerTokenClassification
+from temporal_taggers.NumBertTokenizer import NumBertTokenizer
+from temporal_taggers.tagger.BERTWithCRF import BertWithCRF
 
 
 def get_args():
@@ -120,17 +120,17 @@ def insert_tags_in_raw_text(raw_text: str, merged_tokens: List[Tuple[str, str]],
     for token, tag in merged_tokens:
         # If we still have the same tag, then we either just extend the annotation (not "O"), or just leave it ("O").
         if tag == prev_tag:
-            if tag != "O" and tag !="[PAD]":
+            if tag != "O" and tag != "[PAD]":
                 current_annotation_group += f" {token}"
             continue
 
         else:
             # This means we're just opening an annotation, e.g., "O DATE"
-            if prev_tag != "O" and prev_tag!="[PAD]":
+            if prev_tag != "O" and prev_tag != "[PAD]":
                 raw_text, tagged_text, annotation_id = place_timex_tag(raw_text, tagged_text, current_annotation_group,
                                                                        annotation_id, prev_tag)
                 # Immediately store the next token, as it is also tagged, but in a different group
-                if tag != "O" and prev_tag!="[PAD]" :
+                if tag != "O" and prev_tag != "[PAD]":
                     current_annotation_group = token
                 else:
                     current_annotation_group = ""
@@ -240,7 +240,7 @@ def get_vote_type(votes: List[str]) -> str:
 
 def get_pred_type(prediction: str) -> str:
 
-    if prediction == "O" or prediction=="[PAD]" or prediction=="[SEP]":
+    if prediction == "O" or prediction == "[PAD]" or prediction == "[SEP]":
         return prediction
     else:
         return prediction.split("-")[1]
@@ -254,7 +254,7 @@ def get_model_and_tokenizers(args):
         model = BertForTokenClassification.from_pretrained(args.model_dir)
         date_tokenizer = None
     elif args.model_type == "crf":
-        model = BERT_CRF_NER.from_pretrained(args.model_dir)
+        model = BertWithCRF.from_pretrained(args.model_dir)
         date_tokenizer = None
     else:
         raise ValueError("Incorrect model type specified")
@@ -277,7 +277,7 @@ if __name__ == '__main__':
 
         in_fp = os.path.join(args.input_dir, fn)
         out_fp = os.path.join(args.output_dir, fn)
-    # Extract text and creation date
+        # Extract text and creation date
         raw_text, _, creation_date = get_text_and_annotations_and_date(in_fp)
         text = raw_text.split("  ")  # Since we replaced "\n" with " ", this works to detect the empty lines in between.
 
