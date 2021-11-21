@@ -6,9 +6,9 @@ import json
 import os
 from argparse import ArgumentParser
 from typing import List
-from bs4 import BeautifulSoup
 from tqdm import tqdm
 
+from bs4 import BeautifulSoup
 
 def get_args():
     args = ArgumentParser()
