@@ -1,9 +1,8 @@
 from transformers import AutoTokenizer, BertForTokenClassification
-from temporal_models.BERTWithDateLayerTokenClassification import BERTWithDateLayerTokenClassification
-from temporal_taggers.NumBertTokenizer import NumBertTokenizer
-from temporal_models.BERTWithCRF import BERT_CRF_NER
-from evaluation.classifier_generate_tempeval_data import merge_tokens, insert_tags_in_raw_text
 import torch
+
+from temporal_taggers.tagger import BERTWithDateLayerTokenClassification, BertWithCRF, DateTokenizer
+from temporal_taggers.evaluation import merge_tokens, insert_tags_in_raw_text
 
 if __name__ == "__main__":
     model_type = "normal"  # change the model type here to try different models
@@ -17,14 +16,15 @@ if __name__ == "__main__":
     if model_type == "date":
         model = BERTWithDateLayerTokenClassification.from_pretrained(
             "satyaalmasian/temporal_tagger_DATEBERT_tokenclassifier")
-        date_tokenizer = NumBertTokenizer("../data/vocab_date.txt")
+        date_tokenizer = DateTokenizer("../../data/vocab_date.txt")
+        # Use a random date for the examples
         processed_date = torch.LongTensor(date_tokenizer(["2020 2 28" for _ in range(len(input_texts))],
-                                                         add_special_tokens=False)["input_ids"])  # some random date
+                                                         add_special_tokens=False)["input_ids"])
     elif model_type == "normal":
         model = BertForTokenClassification.from_pretrained("satyaalmasian/temporal_tagger_BERT_tokenclassifier")
         date_tokenizer = None
     elif model_type == "crf":
-        model = BERT_CRF_NER.from_pretrained("satyaalmasian/temporal_tagger_BERTCRF_tokenclassifier")
+        model = BertWithCRF.from_pretrained("satyaalmasian/temporal_tagger_BERTCRF_tokenclassifier")
         date_tokenizer = None
     else:
         raise ValueError("Incorrect model type specified")
