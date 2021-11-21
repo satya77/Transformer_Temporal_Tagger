@@ -1,6 +1,6 @@
 from transformers import AutoTokenizer, BertForTokenClassification
 from temporal_models.BERTWithDateLayerTokenClassification import BERTWithDateLayerTokenClassification
-from temporal_models.NumBertTokenizer import NumBertTokenizer
+from temporal_taggers.NumBertTokenizer import NumBertTokenizer
 from temporal_models.BERTWithCRF import BERT_CRF_NER
 from evaluation.classifier_generate_tempeval_data import merge_tokens, insert_tags_in_raw_text
 import torch

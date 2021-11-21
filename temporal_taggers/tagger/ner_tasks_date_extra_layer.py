@@ -4,13 +4,13 @@ from typing import List, TextIO, Union
 
 from conllu import parse_incr
 
-from temporal_models.ner_utils import InputExample, Split, CRFTokenClassificationTask
+from temporal_taggers.tagger.utils import InputExample, Split, TokenClassificationWithDate
 
 
 logger = logging.getLogger(__name__)
 
 
-class NER(CRFTokenClassificationTask):
+class NER(TokenClassificationWithDate):
     def __init__(self, label_idx=-1):
         # in NER datasets, the last column is usually reserved for NER label
         self.label_idx = label_idx
@@ -25,15 +25,18 @@ class NER(CRFTokenClassificationTask):
             words = []
             labels = []
             for line in f:
+
                 if line.startswith("-DOCSTART-") or line == "" or line == "\n":
                     if words:
-                        examples.append(InputExample(guid=f"{mode}-{guid_index}", words=words, labels=labels))
+                        if not guid:
+                            guid = f"{mode}-{guid_index}"
+                        examples.append(InputExample(guid=guid, words=words, labels=labels))
                         guid_index += 1
                         words = []
                         labels = []
+                elif line.startswith("#") and line!="#collusion O\n":
+                    guid=line.replace("#","").replace("\n","").replace("-"," ")[:11]
 
-                elif line.startswith("#"):
-                    guid = line.replace("#", "").replace("\n", "").replace("-", " ")[:11]
                 else:
                     splits = line.split(" ")
                     words.append(splits[0])
@@ -43,6 +46,7 @@ class NER(CRFTokenClassificationTask):
                         # Examples could have no label for mode = "test"
                         labels.append("O")
             if words:
+
                 if not guid:
                     guid=f"{mode}-{guid_index}"
 
@@ -68,17 +72,9 @@ class NER(CRFTokenClassificationTask):
                 labels = f.read().splitlines()
             if "O" not in labels:
                 labels = ["O"] + labels
-            labels = ["[CLS]", "[SEP]", "[PAD]" ] + labels
-            self._label_map ={label: i for i, label in enumerate(labels)}
             return labels
         else:
             return ["O", "B-MISC", "I-MISC", "B-PER", "I-PER", "B-ORG", "I-ORG", "B-LOC", "I-LOC"]
-
-    def get_start_label_id(self):
-        return self._label_map['[CLS]']
-
-    def get_stop_label_id(self):
-        return self._label_map['[SEP]']
 
 
 class Chunk(NER):
@@ -119,7 +115,7 @@ class Chunk(NER):
             ]
 
 
-class POS(CRFTokenClassificationTask):
+class POS(TokenClassificationWithDate):
     def read_examples_from_file(self, data_dir, mode: Union[Split, str]) -> List[InputExample]:
         if isinstance(mode, Split):
             mode = mode.value

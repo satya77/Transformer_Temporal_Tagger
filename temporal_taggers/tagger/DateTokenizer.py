@@ -4,15 +4,15 @@ import unicodedata
 from typing import List, Optional, Tuple
 
 from transformers.models.bert.tokenization_bert import VOCAB_FILES_NAMES, PRETRAINED_VOCAB_FILES_MAP, \
-    PRETRAINED_POSITIONAL_EMBEDDINGS_SIZES, PRETRAINED_INIT_CONFIGURATION, load_vocab, BasicTokenizer, \
-    whitespace_tokenize,_is_whitespace,_is_control,_is_punctuation
+    PRETRAINED_POSITIONAL_EMBEDDINGS_SIZES, PRETRAINED_INIT_CONFIGURATION, load_vocab, \
+    whitespace_tokenize, _is_whitespace, _is_control, _is_punctuation
 from transformers.tokenization_utils import PreTrainedTokenizer
 from transformers.utils import logging
 
 logger = logging.get_logger(__name__)
 
 
-class NumBertTokenizer(PreTrainedTokenizer):
+class DateTokenizer(PreTrainedTokenizer):
     r"""
     Construct a BERT tokenizer. Based on WordPiece.
 
@@ -97,7 +97,7 @@ class NumBertTokenizer(PreTrainedTokenizer):
         self.ids_to_tokens = collections.OrderedDict([(ids, tok) for tok, ids in self.vocab.items()])
         self.do_basic_tokenize = do_basic_tokenize
         if do_basic_tokenize:
-            self.basic_tokenizer = NumBERTBasicTokenizer(
+            self.basic_tokenizer = DateBasicTokenizer(
                 do_lower_case=do_lower_case,
                 never_split=never_split,
                 tokenize_chinese_chars=tokenize_chinese_chars,
@@ -281,7 +281,8 @@ class NumberWordpieceTokenizer(object):
                 output_tokens.append(self.unk_token)
                 continue
 
-            ########## Code changed for the number tokenization ##############
+            # TODO: [DA 2021-11-22] See if we can move this into a separate block, such that it can be
+            #  built as an extension of an existing Tokenizer instead.
             chars_copy = chars.copy()
             if "." in chars_copy:
                 chars_copy.remove(".")
@@ -323,7 +324,7 @@ class NumberWordpieceTokenizer(object):
         return output_tokens
 
 
-class NumBERTBasicTokenizer(object):
+class DateBasicTokenizer(object):
     """
     Constructs a BasicTokenizer that will run basic tokenization (punctuation splitting, lower casing, etc.).
 
@@ -408,7 +409,8 @@ class NumBERTBasicTokenizer(object):
         start_new_word = True
         output = []
 
-        ########## Code changed for the number tokenization ##############
+        # TODO: [DA 2021-11-22] See if we can move this into a separate block, such that it can be
+        #  built as an extension of an existing Tokenizer instead.
         chars_copy = chars.copy()
         if "." in chars_copy:
             chars_copy.remove(".")
@@ -417,6 +419,7 @@ class NumBERTBasicTokenizer(object):
         if all([s.isdigit for s in chars_copy]):
             return [text]
         ########## end change ##############
+
         else:
             while i < len(chars):
                 char = chars[i]
@@ -456,15 +459,15 @@ class NumBERTBasicTokenizer(object):
         # space-separated words, so they are not treated specially and handled
         # like the all of the other languages.
         if (
-            (cp >= 0x4E00 and cp <= 0x9FFF)
-            or (cp >= 0x3400 and cp <= 0x4DBF)  #
-            or (cp >= 0x20000 and cp <= 0x2A6DF)  #
-            or (cp >= 0x2A700 and cp <= 0x2B73F)  #
-            or (cp >= 0x2B740 and cp <= 0x2B81F)  #
-            or (cp >= 0x2B820 and cp <= 0x2CEAF)  #
-            or (cp >= 0xF900 and cp <= 0xFAFF)
-            or (cp >= 0x2F800 and cp <= 0x2FA1F)  #
-        ):  #
+            (0x4E00 <= cp <= 0x9FFF)
+            or (0x3400 <= cp <= 0x4DBF)
+            or (0x20000 <= cp <= 0x2A6DF)
+            or (0x2A700 <= cp <= 0x2B73F)
+            or (0x2B740 <= cp <= 0x2B81F)
+            or (0x2B820 <= cp <= 0x2CEAF)
+            or (0xF900 <= cp <= 0xFAFF)
+            or (0x2F800 <= cp <= 0x2FA1F)
+        ):
             return True
 
         return False
