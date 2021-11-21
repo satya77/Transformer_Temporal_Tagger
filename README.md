@@ -51,7 +51,7 @@ The data used for training and evaluation are provided in zipped form in `data.z
 For evaluation, we use a slightly modified version of the TempEval-3 evaluation toolkit ([original source here](https://www.cs.york.ac.uk/semeval-2013/task1/index.php%3Fid=data.html)).
 We refactored the code to be compatible with Python3, and incorporated additional evaluation metrics, such as a confusion matrix for type classification.
 We cross-referenced results to ensure full backward-compatibility and all runs result in the exact same results for both versions.
-Our adjusted code, as well as scripts to convert the output of transformer-based tagging models are in the [evaluation](./evaluation/) subfolder.
+Our adjusted code, as well as scripts to convert the output of transformer-based tagging models are in the [evaluation](temporal_taggers/evaluation/) subfolder.
 For more usage information, refer to the README file in the respective subfolder.
 
 

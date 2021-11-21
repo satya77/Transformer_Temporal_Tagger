@@ -1,27 +1,25 @@
 """
 Script to generate timex3 files from the BIO tags of the classifiers, which can be used for tempeval evaluation script.
 """
-import torch
 import regex
 import os
-
-from transformers import AutoTokenizer, BertForTokenClassification
 from argparse import ArgumentParser
 from collections import Counter
 from typing import List, Tuple
 from tqdm import tqdm
+
+import torch
+from transformers import AutoTokenizer, BertForTokenClassification
 from bs4 import BeautifulSoup
 
-from temporal_taggers.tagger.BERTWithDateLayerTokenClassification import BERTWithDateLayerTokenClassification
-from temporal_taggers.NumBertTokenizer import NumBertTokenizer
-from temporal_taggers.tagger.BERTWithCRF import BertWithCRF
+from ..tagger import BERTWithDateLayerTokenClassification, BertWithCRF, DateTokenizer
 
 
 def get_args():
     parser = ArgumentParser()
-    parser.add_argument("--input_dir", default="./data/temporal/tempeval/tempeval_test/",
+    parser.add_argument("--input_dir", default="../../data/temporal/tempeval/tempeval_test/",
                         help="Location of the files that should be annotated.")
-    parser.add_argument("--output_dir", default="./results/classifiers/fine_tune/tempeval_test_bert_crf_tagging_with_pretrain_seed_12",
+    parser.add_argument("--output_dir", default="../../results/classifiers/fine_tune/tempeval_test_bert_crf_tagging_with_pretrain_seed_12",
                         help="Location where to write output files.")
     parser.add_argument("--file_ext", default="tml", help="File extension of files to be processed.")
     parser.add_argument("--model_dir", default="./model/fine_tune/bert_crf_tagging/bert_crf_tagging_seed_12",
@@ -249,7 +247,7 @@ def get_pred_type(prediction: str) -> str:
 def get_model_and_tokenizers(args):
     if args.model_type == "date":
         model = BERTWithDateLayerTokenClassification.from_pretrained(args.model_dir)
-        date_tokenizer = NumBertTokenizer("./data/vocab_date.txt")
+        date_tokenizer = DateTokenizer("./data/vocab_date.txt")
     elif args.model_type == "normal":
         model = BertForTokenClassification.from_pretrained(args.model_dir)
         date_tokenizer = None

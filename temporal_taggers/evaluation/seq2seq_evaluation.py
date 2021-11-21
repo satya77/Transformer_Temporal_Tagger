@@ -215,8 +215,8 @@ def clean_predictions(prediction):
     for v in truncated_values:
         prediction = prediction.replace(v, v + '">')
 
-    concatanated_value = re.findall(r'\w+\-timex3\>', prediction)
-    for v in concatanated_value:
+    concatenated_value = re.findall(r'\w+\-timex3\>', prediction)
+    for v in concatenated_value:
         prediction = prediction.replace(v, v.split("-")[0] + '"<' + v.split("-")[1])
 
     additional_white_space = re.findall(r'value=\"[\d\w\:\-\_]+\s\"', prediction)
@@ -314,10 +314,10 @@ if __name__ == "__main__":
             index = 0
 
             for paragraph, original_para in zip(decoded_preds.split(split_on), all_text.split(split_on)):
-                # bert lower casess everything, so we need to do the same to find the matches
-                original_parag_lower = original_para.lower()
+                # bert lowercases everything, so we need to do the same to find the matches
+                original_paragraph_lower = original_para.lower()
                 if args.model_type == "bert":
-                    original_paragraph = original_parag_lower
+                    original_paragraph = original_paragraph_lower
                 else:
                     original_paragraph = original_para
 
@@ -416,13 +416,14 @@ if __name__ == "__main__":
                                                                          end_previous_timex:].lower():
                         beginning_timex = original_paragraph[end_previous_timex:].lower().find(cleaned_text.lower())
 
-                    # avoid tag repetion
+                    # avoid tag repetition
                     if cleaned_text == previous_timex_cleaned_text:
                         continue
 
                     previous_timex_cleaned_text = cleaned_text
 
-                    if beginning_timex == -1:  # if you still do not find a match, just forget it.
+                    # if you still do not find a match, just forget it.
+                    if beginning_timex == -1:
                         continue
 
                     index = index + 1
