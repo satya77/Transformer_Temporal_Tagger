@@ -2,7 +2,7 @@ import logging
 import os
 from typing import List, TextIO, Union
 
-from temporal_taggers.tagger.ner_utils import InputExample, Split, TokenClassificationTask
+from .utils import InputExample, Split, TokenClassificationTask
 
 
 logger = logging.getLogger(__name__)

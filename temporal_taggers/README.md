@@ -1,6 +1,6 @@
 # Utilities for temporal models
 Contains code for the two custom token classification variants (with extra date embedding or CRF layer), as well as
-utility functions for training the seq2seq models in `seq2seq_utils.py`.
+utility functions for training the seq2seq models in `seq2seq/utils.py`.
 
 ## BERT with CRF
 The model definition and CRF layer are in `BERTWithCRF`, the code is adapted from [here](https://github.com/Louis-udm/NER-BERT-CRF/blob/master/NER_BERT_CRF.py).
