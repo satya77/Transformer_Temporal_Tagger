@@ -117,7 +117,7 @@ def find_timex_in_text(timex_preds, input_text, model_type):
                 original_paragraph[beginning_timex - 1:beginning_timex].isdigit():
             new_text += f'{input_text[end_previous_timex:beginning_timex]}<TIMEX3 tid="t{index + 1}" ' \
                         f'type="{timex.attrs["type"].upper()}" ' \
-                        f'value="{timex.attrs["value"].strip().freplace("</timex3>", "").replace("<", "").replace(">", "").replace(" ", "").upper()}">{input_text[beginning_timex:beginning_timex + len(cleaned_text)]}' \
+                        f'value="{timex.attrs["value"].strip().replace("</timex3>", "").replace("<", "").replace(">", "").replace(" ", "").upper()}">{input_text[beginning_timex:beginning_timex + len(cleaned_text)]}' \
                         f'</TIMEX3>'
 
         else:  # otherwise put a space
