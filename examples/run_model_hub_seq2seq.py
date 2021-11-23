@@ -1,7 +1,7 @@
 from bs4 import BeautifulSoup
 from transformers import AutoTokenizer, EncoderDecoderModel
 
-from evaluation.seq2seq_generate_tempeval_data import clean_predictions
+from temporal_taggers.evaluation import clean_predictions
 
 
 def find_timex_in_text(timex_preds, input_text, model_type):
@@ -15,7 +15,7 @@ def find_timex_in_text(timex_preds, input_text, model_type):
     index = 0
     for timex in timex_preds:
         cleaned_text = timex.text.replace("<", "").replace(">", "").replace("\"", "").strip()
-        # sometimes the cleaninng has leftovers
+        # sometimes the cleaned text has "leftovers"
         if cleaned_text.startswith("- "):
             cleaned_text = cleaned_text[2:]
 
@@ -65,8 +65,8 @@ def find_timex_in_text(timex_preds, input_text, model_type):
                 beginning_timex = original_paragraph[end_previous_timex:].lower().find(cleaned_text.lower())
                 break;
         # if its just a single word
-        elif beginning_timex == -1 and len(cleaned_text.split(" ")) < 2 and len(cleaned_text) > 2 and not \
-                cleaned_text[0].isdigit() and cleaned_text[-1].isdigit():
+        elif beginning_timex == -1 and len(cleaned_text.split(" ")) < 2 and len(cleaned_text) > 2 and \
+                not cleaned_text[0].isdigit() and cleaned_text[-1].isdigit():
             for i in range(2, len(cleaned_text)):
                 word = cleaned_text[:i]
                 if " " + word + " " in original_paragraph[end_previous_timex:] or \
@@ -94,19 +94,20 @@ def find_timex_in_text(timex_preds, input_text, model_type):
                                                                                     "have", "at", "be"]:
                     cleaned_text = word
                     beginning_timex = original_paragraph[end_previous_timex:].find(cleaned_text)
-                    break;
+                    break
 
         if beginning_timex == -1 and cleaned_text.lower() in original_paragraph[
                                                              end_previous_timex:].lower():
             beginning_timex = original_paragraph[end_previous_timex:].lower().find(cleaned_text.lower())
 
-        # avoid tag repetion
+        # avoid tag repetition
         if cleaned_text == previous_timex_cleaned_text:
             continue
 
         previous_timex_cleaned_text = cleaned_text
 
-        if beginning_timex == -1:  # if you still do not find a match, just forget it.
+        # if there is still no match, just forget it.
+        if beginning_timex == -1:
             continue
 
         index = index + 1
@@ -119,7 +120,7 @@ def find_timex_in_text(timex_preds, input_text, model_type):
                         f'value="{timex.attrs["value"].strip().replace("</timex3>", "").replace("<", "").replace(">", "").replace(" ", "").upper()}">{input_text[beginning_timex:beginning_timex + len(cleaned_text)]}' \
                         f'</TIMEX3>'
 
-        else:  # otherwises put a space
+        else:  # otherwise put a space
             new_text += f'{input_text[end_previous_timex:beginning_timex]} <TIMEX3 tid="t{index + 1}" ' \
                         f'type="{timex.attrs["type"].upper()}" ' \
                         f'value="{timex.attrs["value"].strip().replace("</timex3>", "").replace("<", "").replace(">", "").replace(" ", "").upper()}">{input_text[beginning_timex:beginning_timex + len(cleaned_text)]}' \
@@ -144,8 +145,8 @@ if __name__ == "__main__":
     input_texts = ["I lived in New York for 10 years."]
     input_texts += ["Cumbre Vieja last erupted in 1971 and in 1949."]
     input_texts += ["The club's founding date, 15 January, was intentional."]
-    input_texts += [
-        "Police were first called to the scene just after 7.25am this morning, Sunday, September 19, and have confirmed they will continue to remain in the area for some time."]
+    input_texts += ["Police were first called to the scene just after 7.25am this morning, Sunday, September 19, "
+                    "and have confirmed they will continue to remain in the area for some time."]
 
     for input_text in input_texts:
         model_inputs = tokenizer(input_text, truncation=True, return_tensors="pt")

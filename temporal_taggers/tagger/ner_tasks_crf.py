@@ -4,7 +4,7 @@ from typing import List, TextIO, Union
 
 from conllu import parse_incr
 
-from temporal_models.ner_utils import InputExample, Split, CRFTokenClassificationTask
+from .utils import InputExample, Split, CRFTokenClassificationTask
 
 
 logger = logging.getLogger(__name__)

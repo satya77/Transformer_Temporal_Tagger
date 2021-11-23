@@ -1,17 +1,14 @@
 from argparse import ArgumentParser
-
-from transformers import RobertaTokenizerFast, BertTokenizerFast
-from datasets import load_dataset
-from transformers import Seq2SeqTrainingArguments, Seq2SeqTrainer
-from transformers import EncoderDecoderModel
-from temporal_models import seq2seq_utils
 import os
 
-from temporal_models.seq2seq_utils import DataProcessor
+from transformers import RobertaTokenizerFast, BertTokenizerFast, \
+    Seq2SeqTrainingArguments, Seq2SeqTrainer, EncoderDecoderModel
+from datasets import load_dataset
+
+from temporal_taggers.seq2seq.utils import DataProcessor, Metrics
 
 
 ##########------------------------------- Parameters -------------------------------##########
-
 def get_args():
     args = ArgumentParser()
     args.add_argument("--transformer_cache", type=str, default="./cache/",
@@ -26,10 +23,9 @@ def get_args():
                       help="the pretrained model to load incase of fine tunning.")
     args.add_argument("--model_name", type=str, required=True,
                       help="name of the model roberta-base or bert-base-uncased")
-    args.add_argument("--train_data", type=str, default="./data/temporal/tempeval_seq2seq/train/train_mixed.json",
+    args.add_argument("--train_data", type=str, default="../data/temporal/tempeval_seq2seq/train/train_mixed.json",
                       help="data for the train")
-
-    args.add_argument("--eval_data", type=str, default="./data/temporal/tempeval_seq2seq/test/tempeval_test.json",
+    args.add_argument("--eval_data", type=str, default="../data/temporal/tempeval_seq2seq/test/tempeval_test.json",
                       help="data for evaluation")
     args.add_argument("--text_column", type=str, default="text",
                       help="column of the data the has the text")
@@ -49,13 +45,14 @@ def get_args():
     args.add_argument("--early_stopping", type=bool, default=True,
                       help="stop beam search when num_beams sentences are finished per batch.")
     args.add_argument("--length_penalty", type=int, default=2,
-                      help="Set to values < 1.0 in order to encourage the model to generate shorter sequences, to a value > 1.0 in order to encourage the model to produce longer sequences.")
+                      help="Set to a value < 1.0 in order to encourage the model to generate shorter sequences, "
+                           "or to a value > 1.0 in order to encourage the model to produce longer sequences.")
     args.add_argument("--num_beams", type=int, default=2,
                       help="numbers of beams for beam search")
     args.add_argument("--num_gpu", type=str, default="0",
-                      help="the number of the gpus or gpus that you want to use, e.g., '0' for one and '0,1' for multiple.")
+                      help="the device ID of the GPU(s) that you want to use, e.g., '0' or '0,1' for single/multi-GPU.")
     args.add_argument("--seed", type=int, default=0,
-                      help="optional a seed. ")
+                      help="Random seed for reproducible results")
     args.add_argument("--num_train_epochs", type=int, default=3,
                       help="number of training epochs. ")
     args.add_argument("--save_steps", type=int, default=100_000,
@@ -66,14 +63,15 @@ def get_args():
                       help="The number of steps for the warmup phase.")
 
     return args.parse_args()
-##########------------------------------- Main -------------------------------##########
 
+
+##########------------------------------- Main -------------------------------##########
 if __name__ == "__main__":
-    args=get_args()
+    args = get_args()
     os.environ['TOKENIZERS_PARALLELISM'] = "false"
     os.environ['TRANSFORMERS_CACHE'] = args.transformer_cache
     os.environ['DATASETS_CACHE'] = args.data_set_cache
-    os.environ["CUDA_VISIBLE_DEVICES"]= args.num_gpu
+    os.environ["CUDA_VISIBLE_DEVICES"] = args.num_gpu
 
     ##########------------------------------- Get model -------------------------------##########
 
@@ -86,12 +84,10 @@ if __name__ == "__main__":
     tokenizer.eos_token = tokenizer.sep_token
 
     if args.pre_train:
-
         model2model = EncoderDecoderModel.from_encoder_decoder_pretrained(args.model_name, args.model_name)
     else:
-        if args.pretrain_path== None:
-            print(" you need to specifiy a path to the pretrained model. ")
-            exit()
+        if args.pretrain_path is None:
+            raise ValueError("Please specify a path to a pretrained model when not performing pre-training!")
         model2model = EncoderDecoderModel.from_pretrained(args.pretrain_path)
 
     # set special tokens
@@ -108,17 +104,22 @@ if __name__ == "__main__":
     model2model.config.length_penalty = args.length_penalty
     model2model.config.num_beams = args.num_beams
 
-
     ##########------------------------------- Process data -------------------------------##########
+    data_processor = DataProcessor(tokenizer,
+                                   args.text_column,
+                                   args.tag_column,
+                                   None,
+                                   args.max_length,
+                                   args.max_length,
+                                   "max_length",
+                                   args.date_column)
+    process_data_to_model_inputs = data_processor.process_data_to_model_inputs_encoder_decoder
 
-    data_processor= DataProcessor(tokenizer, args.text_column,args.tag_column,None,args.max_length,args.max_length,"max_length",args.date_column)
-    process_data_to_model_inputs= data_processor.process_data_to_model_inputs_encoder_decoder
+    data_files = {
+        "train": args.train_data,
+        "eval": args.eval_data
+    }
 
-    data_files = {}
-
-
-    data_files["train"] =args.train_data
-    data_files["eval"] =args.eval_data
     folder_name = args.model_dir
     encoder_max_length = args.max_length
     decoder_max_length = args.max_length
@@ -126,7 +127,6 @@ if __name__ == "__main__":
     datasets = load_dataset("json", data_files=data_files,  cache_dir=args.data_set_cache)
     train_data = datasets["train"]
     val_data = datasets["eval"]
-
 
     train_data = train_data.map(
         process_data_to_model_inputs,
@@ -148,7 +148,7 @@ if __name__ == "__main__":
 
     ##########------------------------------- Training -------------------------------##########
 
-    metrics = seq2seq_utils.metrics(tokenizer)
+    metrics = Metrics(tokenizer)
 
     # set training arguments
     training_args = Seq2SeqTrainingArguments(
@@ -177,8 +177,10 @@ if __name__ == "__main__":
         eval_dataset=val_data,
     )
 
-    train_result=trainer.train()
-    metrics = train_result.metrics
+    # Actual training call
+    train_result = trainer.train()
+
+    metrics = train_result.Metrics
     trainer.log_metrics("train", metrics)
     trainer.save_metrics("train", metrics)
     trainer.save_state()

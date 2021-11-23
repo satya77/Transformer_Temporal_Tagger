@@ -13,9 +13,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" Fine-tuning the library models for named entity recognition on CoNLL-2003. """
-
-########################## ATTENTION: Removed the cached dataset before starting with a new model, each model may tokenize the text differently ##########################
+"""
+##############################################################################
+ATTENTION: Remove any cached dataset before starting with a new model, 
+    since each model may tokenize the text differently
+##############################################################################
+"""
 
 import logging
 import os
@@ -25,10 +28,11 @@ from importlib import import_module
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
-from seqeval.metrics import accuracy_score, f1_score, precision_score, recall_score
 from torch import nn
+from seqeval.metrics import accuracy_score, f1_score, precision_score, recall_score
 
 import transformers
+from transformers.trainer_utils import is_main_process
 from transformers import (
     AutoConfig,
     AutoModelForTokenClassification,
@@ -40,15 +44,10 @@ from transformers import (
     TrainingArguments,
     set_seed,
 )
-from transformers.trainer_utils import is_main_process
 
-from temporal_models.BERTWithCRF import BERT_CRF_NER
-# from BERTWithCRF_FAILED import BERTCRF
-from temporal_models.BERTWithDateLayerTokenClassification import BERTWithDateLayerTokenClassification
-from temporal_models.NumBertTokenizer import NumBertTokenizer
-from temporal_models.ner_utils import Split, TokenClassificationDataset, TokenClassificationTask, \
-    TokenClassificationWithDate, \
-    CRFTokenClassificationTask
+from temporal_taggers.tagger import BertWithCRF, BERTWithDateLayerTokenClassification, DateTokenizer
+from temporal_taggers.tagger.utils import Split, TokenClassificationDataset, TokenClassificationTask, \
+    TokenClassificationWithDate, CRFTokenClassificationTask
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +83,7 @@ class ModelArguments:
     model_crf: bool = field(default=False, metadata={"help": "set this flag if you want to add a crf layer on top."})
 
     date_vocab: str = field(
-        metadata={"help": "Path to the vocab for date."}, default="./data/vocab_date.txt"
+        metadata={"help": "Path to the vocab for date."}, default="../data/vocab_date.txt"
     )
 
 
@@ -133,37 +132,36 @@ def main():
             and not training_args.overwrite_output_dir
     ):
         raise ValueError(
-            f"Output directory ({training_args.output_dir}) already exists and is not empty. Use --overwrite_output_dir to overcome."
+            f"Output directory ({training_args.output_dir}) already exists and is not empty. "
+            f"Use --overwrite_output_dir to overcome."
         )
 
     ######### NEW ARGUMENTS #########
     # model_args.model_date_extra_layer = False
     # model_args.model_crf = False
     # model_args.custom_tokenizer = False
-    # model_args.date_vocab = "./data/vocab_date.txt"
-    # model_args.bert_vocab = "./data/vocab_bert_uncased.txt"
+    # model_args.date_vocab = "../data/vocab_date.txt"
+    # model_args.bert_vocab = "../data/vocab_bert_uncased.txt"
 
     if model_args.model_date_extra_layer:
-        module = import_module("temporal_models.ner_tasks_date_extra_layer")
-        tokenizer_date = NumBertTokenizer(model_args.date_vocab)
+        module = import_module("temporal_taggers.ner_tasks_date_extra_layer")
+        tokenizer_date = DateTokenizer(model_args.date_vocab)
     elif model_args.model_crf:
-        module = import_module("temporal_models.ner_tasks_crf")
+        module = import_module("temporal_taggers.ner_tasks_crf")
         tokenizer_date = None
     else:
-        module = import_module("temporal_models.ner_tasks")
+        module = import_module("temporal_taggers.ner_tasks")
         tokenizer_date = None
     try:
         token_classification_task_class = getattr(module, model_args.task_type)
 
         if model_args.model_crf:
             token_classification_task: CRFTokenClassificationTask = token_classification_task_class()
-
         elif model_args.model_date_extra_layer:
-
             token_classification_task: TokenClassificationWithDate = token_classification_task_class()
-
         else:
             token_classification_task: TokenClassificationTask = token_classification_task_class()
+
     except AttributeError:
         raise ValueError(
             f"Task {model_args.task_type} needs to be defined as a TokenClassificationTask subclass in {module}. "
@@ -238,7 +236,7 @@ def main():
         config.stop_label_id = token_classification_task.get_stop_label_id()  # sep
         config.batch_size = 8
 
-        model = BERT_CRF_NER.from_pretrained(
+        model = BertWithCRF.from_pretrained(
             model_args.model_name_or_path,
             from_tf=bool(".ckpt" in model_args.model_name_or_path),
             config=config,

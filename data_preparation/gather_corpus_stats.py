@@ -5,11 +5,11 @@ We go beyond previous work by also investigating the distribution of taggings.
 
 import os
 import json
+from collections import Counter
+
 import spacy
 import numpy as np
-
 from bs4 import BeautifulSoup
-from collections import Counter
 
 
 def get_heideltime_corpus_stats(heideltime_file, nlp):

@@ -7,16 +7,16 @@ the script `gather_corpus_stats.py`, creates the statistics table from the paper
 The subfolder `heideltime` contains the code related to the HeidelTime package. To run the code you need the [heideltime python wrapper](https://github.com/PhilipEHausner/python_heideltime/tree/master/python_heideltime)
 installed. `heideltime_generate_tempeval_data.py` tags the text from the benchmark data using the heideltime python package.
 We add the TimeML tags to the beginning and end of the documents and try to match the formatting of the sources.
-We used this script to compute the type F1 for wikiwars and tweets and also to compute the class confusion matrices.
+We used this script to compute the type F1 for Wikiwars and Tweets and also to compute the class confusion matrices.
 An example of the usages is below:
 ```bash
 python heideltime_generate_tempeval_data.py --input_folder ./data/temporal/tempeval/tempeval_test \
 --output_folder ./results/baselines/heideltime/tempeval --tweets False 
 ```
 Where the input files are located in the path `input_folder` and the processed files will be stored in `output_folder`.
-The `tweets` tag should be set if the input data is the tweets dataset since it has different formatting than wikiwars and tempeval data.
+The `tweets` tag should be set if the input data is the Tweets dataset since it has a different format than Wikiwars and TempEval data.
 `subset_heideltime_data.py` subsets the full weakly labeled heideltime data, to keep only 1 million instances, from which
-20 percent are negative examples and contain no annotation.
+roughly 26 percent are negative examples and contain no annotations.
 
 ### Seq2seq data
 To generate examples for seq2seq models use `seq2seq_data_generator.py` as follows:

@@ -47,7 +47,7 @@ def get_directory_path(path):
     name = extract_name(path)
     dir = re.sub(name, '', path) 
     if dir == '': 
-        dir = './'
+        dir = '/'
     return dir 
 
 

@@ -1,27 +1,25 @@
 """
 Script to generate timex3 files from the BIO tags of the classifiers, which can be used for tempeval evaluation script.
 """
-import torch
 import regex
 import os
-
-from transformers import AutoTokenizer, BertForTokenClassification
 from argparse import ArgumentParser
 from collections import Counter
 from typing import List, Tuple
 from tqdm import tqdm
+
+import torch
+from transformers import AutoTokenizer, BertForTokenClassification
 from bs4 import BeautifulSoup
 
-from temporal_models.BERTWithDateLayerTokenClassification import BERTWithDateLayerTokenClassification
-from temporal_models.NumBertTokenizer import NumBertTokenizer
-from temporal_models.BERTWithCRF import BERT_CRF_NER
+from ..tagger import BERTWithDateLayerTokenClassification, BertWithCRF, DateTokenizer
 
 
 def get_args():
     parser = ArgumentParser()
-    parser.add_argument("--input_dir", default="./data/temporal/tempeval/tempeval_test/",
+    parser.add_argument("--input_dir", default="../../data/temporal/tempeval/tempeval_test/",
                         help="Location of the files that should be annotated.")
-    parser.add_argument("--output_dir", default="./results/classifiers/fine_tune/tempeval_test_bert_crf_tagging_with_pretrain_seed_12",
+    parser.add_argument("--output_dir", default="../../results/classifiers/fine_tune/tempeval_test_bert_crf_tagging_with_pretrain_seed_12",
                         help="Location where to write output files.")
     parser.add_argument("--file_ext", default="tml", help="File extension of files to be processed.")
     parser.add_argument("--model_dir", default="./model/fine_tune/bert_crf_tagging/bert_crf_tagging_seed_12",
@@ -120,17 +118,17 @@ def insert_tags_in_raw_text(raw_text: str, merged_tokens: List[Tuple[str, str]],
     for token, tag in merged_tokens:
         # If we still have the same tag, then we either just extend the annotation (not "O"), or just leave it ("O").
         if tag == prev_tag:
-            if tag != "O" and tag !="[PAD]":
+            if tag != "O" and tag != "[PAD]":
                 current_annotation_group += f" {token}"
             continue
 
         else:
             # This means we're just opening an annotation, e.g., "O DATE"
-            if prev_tag != "O" and prev_tag!="[PAD]":
+            if prev_tag != "O" and prev_tag != "[PAD]":
                 raw_text, tagged_text, annotation_id = place_timex_tag(raw_text, tagged_text, current_annotation_group,
                                                                        annotation_id, prev_tag)
                 # Immediately store the next token, as it is also tagged, but in a different group
-                if tag != "O" and prev_tag!="[PAD]" :
+                if tag != "O" and prev_tag != "[PAD]":
                     current_annotation_group = token
                 else:
                     current_annotation_group = ""
@@ -240,7 +238,7 @@ def get_vote_type(votes: List[str]) -> str:
 
 def get_pred_type(prediction: str) -> str:
 
-    if prediction == "O" or prediction=="[PAD]" or prediction=="[SEP]":
+    if prediction == "O" or prediction == "[PAD]" or prediction == "[SEP]":
         return prediction
     else:
         return prediction.split("-")[1]
@@ -249,12 +247,12 @@ def get_pred_type(prediction: str) -> str:
 def get_model_and_tokenizers(args):
     if args.model_type == "date":
         model = BERTWithDateLayerTokenClassification.from_pretrained(args.model_dir)
-        date_tokenizer = NumBertTokenizer("./data/vocab_date.txt")
+        date_tokenizer = DateTokenizer("./data/vocab_date.txt")
     elif args.model_type == "normal":
         model = BertForTokenClassification.from_pretrained(args.model_dir)
         date_tokenizer = None
     elif args.model_type == "crf":
-        model = BERT_CRF_NER.from_pretrained(args.model_dir)
+        model = BertWithCRF.from_pretrained(args.model_dir)
         date_tokenizer = None
     else:
         raise ValueError("Incorrect model type specified")
@@ -277,7 +275,7 @@ if __name__ == '__main__':
 
         in_fp = os.path.join(args.input_dir, fn)
         out_fp = os.path.join(args.output_dir, fn)
-    # Extract text and creation date
+        # Extract text and creation date
         raw_text, _, creation_date = get_text_and_annotations_and_date(in_fp)
         text = raw_text.split("  ")  # Since we replaced "\n" with " ", this works to detect the empty lines in between.
 

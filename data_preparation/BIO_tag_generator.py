@@ -1,6 +1,7 @@
 """
 Script to the json files for the seq2seq models and convert them to the BIO tag format for the staging area. This format
-is close to the CoNLL-2002 shared task (for more information on the data format: https://skimai.com/how-to-fine-tune-bert-for-named-entity-recognition-ner/)
+is close to the CoNLL-2002 shared task.
+For more information on the data format: https://skimai.com/how-to-fine-tune-bert-for-named-entity-recognition-ner/
 """
 
 from argparse import ArgumentParser
@@ -8,10 +9,10 @@ from functools import lru_cache
 from bs4 import BeautifulSoup
 from typing import List
 from tqdm import tqdm
-from datasets import load_dataset
-
-import spacy
 import os
+
+from datasets import load_dataset
+import spacy
 
 
 def get_args():
