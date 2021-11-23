@@ -24,8 +24,9 @@ For more sample instances, look at the content of `data.zip`. Refer to the READM
 ## Installation
 You can now install the underlying models by simply running
 ```bash
-python3 -m pip install temporal-taggers
+python3 -m pip install .
 ```
+after cloning this repository; this will automatically install all necessary dependencies. We're working on making the installation even easier by providing a package on PyPI, stay tuned for more!
 
 This repository contains code for data preparation and training of a seq2seq model (encoder-decoder architectured initialized from encoder-only architectures, specifically BERT or RoBERTa), as well as three token classification encoders (BERT-based).  
 The output of the models discussed in the paper is in the `results` folder. Refer to the README file in the folder for more information.
