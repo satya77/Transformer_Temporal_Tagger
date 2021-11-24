@@ -7,6 +7,8 @@ Code and data for the paper [BERT Got a Date: Introducing Transformers to Tempor
 
 [**Check out our models on Huggingface!**](https://huggingface.co/satyaalmasian)
 
+![PyPI version badge](https://img.shields.io/pypi/v/temporal-taggers)
+
 -----------------------------------------------
 
 Temporal tagging is the task of identification of temporal mentions in text; these expressions can be further divided into different type categories, which is what we refer to as expression (type) classification.
