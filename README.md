@@ -24,9 +24,9 @@ For more sample instances, look at the content of `data.zip`. Refer to the READM
 
 
 ## Installation
-You can now install the underlying models by simply running
+You can now install the library by simply running
 ```bash
-python3 -m pip install .
+python3 -m pip install temporal-taggers
 ```
 after cloning this repository; this will automatically install all necessary dependencies. We're working on making the installation even easier by providing a package on PyPI, stay tuned for more!
 
