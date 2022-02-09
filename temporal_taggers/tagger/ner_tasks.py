@@ -1,3 +1,4 @@
+#adapted from https://github.com/huggingface/transformers/blob/master/examples/pytorch/token-classification/run_ner.py
 import logging
 import os
 from typing import List, TextIO, Union
