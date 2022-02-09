@@ -1,5 +1,6 @@
 # Evaluation script and code to generate the relevant data
-
+To evaluate the final data, please use our [adjusted Python3-compatible version of the TempEval3 toolkit](https://github.com/dennlinger/python3-tempeval-toolkit).
+Results are equivalent to the original toolkit.
 
 ### Transforming classification output to tags
 Use `tagger_evaluation.py`, an example of the usage:
