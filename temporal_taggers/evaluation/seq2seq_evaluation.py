@@ -41,6 +41,8 @@ def get_args():
                       help="numbers of beams for beam search")
     args.add_argument("--no_repeat_ngram_size", type=int, default=3,
                       help="n-grams of this size can occur once")
+    args.add_argument("--device", type=str, default="cpu",
+                      help="Specify the name of the training device.")
 
     return args.parse_args()
 
@@ -271,6 +273,8 @@ if __name__ == "__main__":
 
     os.makedirs(args.output_dir, exist_ok=True)
     model.eval()
+
+    model.to(args.device)
     json_file = []
     data_files = {}
     print("dataset_type:", args.dataset_type)
@@ -281,22 +285,14 @@ if __name__ == "__main__":
                                                                              args.dataset_type)
             model_inputs = tokenizer(input_text, max_length=args.max_length, padding=padding, truncation=True,
                                      return_tensors="pt")
-            model_label = tokenizer(output_text, max_length=args.max_length, padding=padding, truncation=True,
-                                    return_tensors="pt")
-            mask = [
-                [(l if l != tokenizer.pad_token_id else -100) for l in label] for label in model_label["input_ids"]
-            ]
-            model_inputs["decoder_input_ids"] = model_label.input_ids
 
-            model_inputs["decoder_attention_mask"] = model_label.attention_mask
+            model_inputs.to(args.device)
+            preds = model.generate(**model_inputs,
+                                   top_k=0, num_beams=5, no_repeat_ngram_size=2, early_stopping=True, top_p=0.95,
+                                   ).detach().cpu().numpy()
 
-            with torch.no_grad():
-                outputs = model(**model_inputs)
-                predictions = outputs.logits
-            preds = predictions.argmax(-1)  # greedy decoding
-            preds = np.where(np.array(mask) != -100, preds, tokenizer.pad_token_id)
-            # generate the predictions and decode them
             decoded_preds = tokenizer.batch_decode(preds, skip_special_tokens=True)
+
             # paragraph splitting is different for wikiwars
             split_on = "\n" if args.dataset_type == "wikiwars" else "\n\n"
             decoded_preds = split_on.join(decoded_preds)

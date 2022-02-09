@@ -26,6 +26,8 @@ def get_args():
                         help="Directory of the model files.")
     parser.add_argument("--model_type", default="normal", choices=["normal", "crf", "date"],
                         help="Specify the type of model that is provided.")
+    parser.add_argument("--device", type=str, default="cpu",
+                        help="Specify the device to execute the code on.")
 
     args = parser.parse_args()
     return args
@@ -268,6 +270,8 @@ if __name__ == '__main__':
     # Guarantee existence of of output dir
     os.makedirs(args.output_dir, exist_ok=True)
 
+    model.to(args.device)
+
     for fn in tqdm(sorted(os.listdir(args.input_dir))):
         # Ignore other file extensions
         if not fn.lower().endswith(args.file_ext):
@@ -284,11 +288,12 @@ if __name__ == '__main__':
             # Model expects batched inputs. Date can be only the input_ids, since we don't need masks
             processed_date = torch.LongTensor(date_tokenizer([creation_date for _ in range(len(text))],
                                                              add_special_tokens=False)["input_ids"])
+            processed_date.to(args.device)
 
         # Regular text however is differently shaped, so we have to extract attention mask, too.
-        processed_text = text_tokenizer(text, padding="max_length")
-        input_ids = torch.LongTensor(processed_text["input_ids"])
-        attention_mask = torch.LongTensor(processed_text["attention_mask"])
+        processed_text = text_tokenizer(text, padding="max_length").to(args.device)
+        input_ids = torch.LongTensor(processed_text["input_ids"]).to(args.device)
+        attention_mask = torch.LongTensor(processed_text["attention_mask"]).to(args.device)
 
         with torch.no_grad():
             if args.model_type == "date":
@@ -297,7 +302,9 @@ if __name__ == '__main__':
                 result = model(input_ids=input_ids, attention_mask=attention_mask)
             else:  # CRF
                 result = model(input_ids=input_ids, attention_mask=attention_mask, inference_mode=True)
-        if  args.model_type != "crf":
+
+        result.detach().cpu()
+        if args.model_type != "crf":
             classification = torch.argmax(result[0], dim=2)
         else:
             classification = result[0]
