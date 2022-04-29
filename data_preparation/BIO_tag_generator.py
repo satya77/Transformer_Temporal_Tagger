@@ -6,11 +6,11 @@ For more information on the data format: https://skimai.com/how-to-fine-tune-ber
 
 from argparse import ArgumentParser
 from functools import lru_cache
-from bs4 import BeautifulSoup
 from typing import List
 from tqdm import tqdm
 import os
 
+from bs4 import BeautifulSoup
 from datasets import load_dataset
 import spacy
 
@@ -30,9 +30,9 @@ def get_args():
     return args.parse_args()
 
 
-def process_file(in_fp, out_fp):
+def process_file(in_fp, out_fp) -> None:
     date = in_fp["date"]
-    text, annotations = get_text_and_annotations_and_date(in_fp["text"], in_fp["tagged_text"])
+    text, annotations = get_text_and_annotations(in_fp["text"], in_fp["tagged_text"])
     # Process with spacy for tokenization and separation of sentences
     nlp = get_spacy_model()
     doc = nlp(text)
@@ -43,18 +43,19 @@ def process_file(in_fp, out_fp):
             next_annotation = annotations.pop(0)
         # Since it is EVENT + TIMEX3 data, there might be no TIMEX3 annotations in some files.
         except IndexError:
-            next_annotation = next_annotation = (len(text), len(text), "O", "O")
+            next_annotation = (len(text), len(text), "O", "O")
+
         # Indicator for B/I tag
-        B = True
+        is_beginning_of_tag = True
 
         # Process each sentence separately, to make it easy to insert newlines in between.
-        for sent in doc.sents:
+        for sentence in doc.sents:
 
-            # Sometimes we get unfortunately starting whitespaces, which are entire sentences
-            if not sent.text.strip():
+            # Sometimes we encounter leading whitespaces, which are treated as "entire sentences" by spacy
+            if not sentence.text.strip():
                 continue
 
-            for token in sent:
+            for token in sentence:
                 # Skip anything that isn't actually a word
                 if token.is_space or token.text == "#":
                     continue
@@ -64,25 +65,25 @@ def process_file(in_fp, out_fp):
                     try:
                         next_annotation = annotations.pop(0)
                         # Reset to B tag
-                        B = True
+                        is_beginning_of_tag = True
                     # Happens when we are done with the last annotation.
                     except IndexError:
                         # just maintain a dummy annotation
                         next_annotation = (len(text), len(text), "O", "O")
 
-                line, B = construct_line(token, next_annotation, B)
+                line, is_beginning_of_tag = construct_line(token, next_annotation, is_beginning_of_tag)
                 f.write(line)
 
             # Extra newline between sentences
             f.write("\n")
 
 
-@lru_cache(maxsize=1)
+@lru_cache(maxsize=2)
 def get_spacy_model(model_name="en_core_web_md"):
-    return spacy.load(model_name)
+    return spacy.load(model_name, disable=["ner"])
 
 
-def get_text_and_annotations_and_date(content,tagged_content) -> (str, List[str], str):
+def get_text_and_annotations(content, tagged_content) -> (str, List[str], str):
     soup = BeautifulSoup(tagged_content, "lxml")
     annotations = []
     end = 0  # Only look in the "remaining string", by saving the previous end position
@@ -120,6 +121,7 @@ if __name__ == "__main__":
 
     args = get_args()
 
+    # Reset training and test file to ensure we don't append to existing files
     os.makedirs(os.path.dirname(args.output_file_train), exist_ok=True)
     with open(args.output_file_train, "w") as f:
         f.write("")
@@ -135,10 +137,10 @@ if __name__ == "__main__":
     val_data = datasets["eval"]
     train_data = datasets["train"]
 
-    # process the train data
+    # Process train data
     for sample in tqdm(train_data):
         process_file(sample, args.output_file_train)
-    # process the test data
+
+    # Process the test data
     for sample in tqdm(val_data):
         process_file(sample, args.output_file_test)
-

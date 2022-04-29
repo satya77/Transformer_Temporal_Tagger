@@ -1,12 +1,11 @@
 # Evaluation script and code to generate the relevant data
-The folder `tempeval3_toolkit-master` contains the evaluation toolkit from the tempeval challenge.
-We only added a few lines to the main file to compute the confusion matrices if the debug level is set to above 1 and also
-to print out the result in a machine-readable format.
+To evaluate the final data, please use our [adjusted Python3-compatible version of the TempEval3 toolkit](https://github.com/dennlinger/python3-tempeval-toolkit).
+Results are equivalent to the original toolkit.
 
 ### Transforming classification output to tags
-Use `classifier_generate_tempeval_data.py`, an example of the usage:
+Use `tagger_evaluation.py`, an example of the usage:
 ```bash
-python3 classifier_generate_tempeval_data.py --input_dir ./data/temporal/wikiwars/wikiwars_test_with_newline/  \
+python3 tagger_evaluation.py --input_dir ./data/temporal/wikiwars/wikiwars_test_with_newline/  \
   --output_dir ./results/token_clasification/fine_tune_wikiwars/wikiwars_test_crf_bert_no_pretrain_8epochs_seed_19 \
   --model_dir ./fine_tune_wikiwars/bert_crf_tagging_no_pretrain_8epochs/bert_crf_tagging_seed_19 \
   --model_type crf 
@@ -19,9 +18,9 @@ the respective type. The new texts are placed in `output_dir`.
 `date` and `crf`.
 
 ### Transforming seq2seq output to tags
-Use `seq2seq_generate_tempeval_data.py`, an example of the usage:
+Use `seq2seq_evaluation.py`, an example of the usage:
 ```bash
-python3 seq2seq_generate_tempeval_data.py --input_dir ./data/temporal/tempeval/tempeval_test  \
+python3 seq2seq_evaluation.py --input_dir ./data/temporal/tempeval/tempeval_test  \
   --output_dir ./results/seq2seq/tempeval/fine_tune_mixed/tempeval_test_seq2seq_roberta_67 \
   --model_path ./fine_tune/roberta2roberta_fine_tuned_no_prefix/roberta2roberta_fine_tune_no_prefixed_seed_67 \
   --dataset_type tempeval \

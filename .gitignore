@@ -1,8 +1,19 @@
+# Development-related exclusions
 .idea/
+
+# Python stuff
 *__pycache__/*
 *__pycache__*
-data/equations
-NER_Berts
+dist/
+build/
+*.egg-info/
+*.egg
+
+# Folders for extracted data
 data/
 results/
 .DS_Store
+
+# Relicts from older iterations of the paper
+data/equations
+NER_Berts

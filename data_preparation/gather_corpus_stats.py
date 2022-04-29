@@ -1,18 +1,20 @@
 """
 Script to generate stats of the evaluation corpora.
-We go beyond previous work by also investigating the distribution of taggings.
+We go beyond previous work by also investigating the distribution of tag classes.
+This script will reproduce most stats shown in Table 1 of the paper.
 """
 
 import os
 import json
 from collections import Counter
 
-import spacy
 import numpy as np
 from bs4 import BeautifulSoup
 
+from .BIO_tag_generator import get_spacy_model
 
-def get_heideltime_corpus_stats(heideltime_file, nlp):
+
+def get_heideltime_corpus_stats(heideltime_file: str) -> None:
     type_dist = {"DATE": 0, "SET": 0, "DURATION": 0, "TIME": 0}
     all_num_sentences = []
     all_num_annotations = []
@@ -33,7 +35,7 @@ def get_heideltime_corpus_stats(heideltime_file, nlp):
 
         prev_id = current_sample["id"]
 
-        num_sentences += get_sentence_length(current_sample["text"], nlp)
+        num_sentences += get_number_of_sentences(current_sample["text"])
         annotations = BeautifulSoup(current_sample["tagged_text"], "lxml").findAll("timex3")
         num_annotations += len(annotations)
         for annotation in annotations:
@@ -46,12 +48,16 @@ def get_heideltime_corpus_stats(heideltime_file, nlp):
     print_stats(all_num_annotations, all_num_sentences, type_dist)
 
 
-def get_corpus_stats(corpus_dir, nlp):
+def get_corpus_stats(corpus_dir: str, file_ext: str = ".tml") -> None:
+
     all_num_sentences = []
     all_num_annotations = []
     all_type_dist = {"DATE": 0, "SET": 0, "DURATION": 0, "TIME": 0}
+
+    # Some datasets are organized in subfolders, so iterate through all of them
     for subdir, dirs, files in os.walk(corpus_dir):
         for fn in sorted(files):
+            # Ignore files that do not follow naming conventions (generally, ".tml")
             if not fn.endswith(file_ext):
                 continue
 
@@ -61,20 +67,22 @@ def get_corpus_stats(corpus_dir, nlp):
             content = soup.findAll("text")[0]
             annotations = content.findAll("timex3")
 
-            num_sentences = get_sentence_length(content.text, nlp)
+            num_sentences = get_number_of_sentences(content.text)
             num_annotations = len(annotations)
-            type_dist = Counter([annotation.attrs["type"] for annotation in annotations])
 
             all_num_sentences.append(num_sentences)
             all_num_annotations.append(num_annotations)
+
+            type_dist = Counter([annotation.attrs["type"] for annotation in annotations])
             for key, val in type_dist.items():
                 all_type_dist[key] += val
 
     print_stats(all_num_annotations, all_num_sentences, all_type_dist)
 
 
-def get_sentence_length(text, spacy_model):
-    processed = spacy_model(text)
+def get_number_of_sentences(text: str) -> int:
+    nlp = get_spacy_model("en_core_web_sm")
+    processed = nlp(text)
     sentence_length = 0
     for sent in processed.sents:
         if sent.text.strip("\n "):
@@ -100,7 +108,6 @@ def print_stats(all_num_annotations, all_num_sentences, all_type_dist):
 
 
 if __name__ == '__main__':
-    file_ext = ".tml"
 
     tempeval_train_dir = "../data/temporal/tempeval_train/"
     tempeval_test_dir = "../data/temporal/tempeval_test/"
@@ -111,35 +118,34 @@ if __name__ == '__main__':
     wikiwars_train_dir = "../data/temporal/wikiwars/trainingset/"
     wikiwars_test_dir = "../data/temporal/wikiwars/testset/"
 
-    heideltime_train_file = "/home/salmasian/numbert/data/temporal/tempeval_seq2seq_corrected/train/train_heideltime_subset_cleaned_1Mil.json"
-    heideltime_test_file = "/home/salmasian/numbert/data/temporal/tempeval_seq2seq_corrected/test/test_heideltime_subset_cleaned_1Mil.json"
-
-    nlp = spacy.load("en_core_web_sm", disable=["ner"])
+    # Data might not be available in release
+    heideltime_train_file = "../data/temporal/tempeval_seq2seq_corrected/train/train_heideltime_subset_cleaned_1Mil.json"
+    heideltime_test_file = "../data/temporal/tempeval_seq2seq_corrected/test/test_heideltime_subset_cleaned_1Mil.json"
 
     print(f"--------------------------------------------------------")
     print("Tempeval train stats:")
-    get_corpus_stats(tempeval_train_dir, nlp)
+    get_corpus_stats(tempeval_train_dir)
     print(f"--------------------------------------------------------")
     print("Tempeval test stats:")
-    get_corpus_stats(tempeval_test_dir, nlp)
+    get_corpus_stats(tempeval_test_dir)
     print(f"--------------------------------------------------------")
     print("Tweets train stats:")
-    get_corpus_stats(tweets_train_dir, nlp)
+    get_corpus_stats(tweets_train_dir)
     print(f"--------------------------------------------------------")
     print("Tweets test stats:")
-    get_corpus_stats(tweets_test_dir, nlp)
+    get_corpus_stats(tweets_test_dir)
     print(f"--------------------------------------------------------")
     print("Wikiwars train stats:")
-    get_corpus_stats(wikiwars_train_dir, nlp)
+    get_corpus_stats(wikiwars_train_dir)
     print(f"--------------------------------------------------------")
     print("Wikiwars test stats:")
-    get_corpus_stats(wikiwars_test_dir, nlp)
+    get_corpus_stats(wikiwars_test_dir)
     print(f"--------------------------------------------------------")
     print("Heideltime training stats:")
-    get_heideltime_corpus_stats(heideltime_train_file, nlp)
+    get_heideltime_corpus_stats(heideltime_train_file)
     print(f"--------------------------------------------------------")
     print("Heideltime test stats:")
-    get_heideltime_corpus_stats(heideltime_test_file, nlp)
+    get_heideltime_corpus_stats(heideltime_test_file)
 
 
 

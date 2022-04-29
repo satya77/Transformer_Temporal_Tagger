@@ -59,7 +59,7 @@ def process_file(in_fp, heideltime_parser, tweets):
 
     with open(in_fp) as f:
         all_line = "\n".join(f.readlines())
-    if not tweets:  # tweets has a slightly dfferent line format
+    if not tweets:  # tweets has a slightly different line format
         id_start = all_line.find("<TEXT>")
         beginning_text = all_line[:id_start] + "<TEXT>"
         end_text = "\n\n</TEXT>\n</TimeML>"
