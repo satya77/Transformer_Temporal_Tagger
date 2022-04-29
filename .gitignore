@@ -5,3 +5,4 @@ data/equations
 NER_Berts
 data/
 results/
+.DS_Store
