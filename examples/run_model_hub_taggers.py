@@ -18,8 +18,8 @@ if __name__ == "__main__":
             "satyaalmasian/temporal_tagger_DATEBERT_tokenclassifier")
         date_tokenizer = DateTokenizer("../../data/vocab_date.txt")
         # Use a random date for the examples
-        processed_date = torch.LongTensor(date_tokenizer(["2020 2 28" for _ in range(len(input_texts))],
-                                                         add_special_tokens=False)["input_ids"])
+        processed_date = torch.LongTensor(date_tokenizer(["2020 2 28"], add_special_tokens=False)["input_ids"])
+
     elif model_type == "normal":
         model = BertForTokenClassification.from_pretrained("satyaalmasian/temporal_tagger_BERT_tokenclassifier")
         date_tokenizer = None
